@@ -1,5 +1,5 @@
 // src/pages/Reports/EmployeeWageReportPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -17,14 +17,13 @@ import {
   Paper,
   CircularProgress,
   TableSortLabel,
-  TextField,
-  Pagination
+  TextField
 } from '@mui/material';
 import api from '../../services/api';
 import { jsPDF } from 'jspdf';
 
 export default function EmployeeWageReportPage() {
-  // States for pay runs and report
+  // Existing states
   const [payRuns, setPayRuns] = useState([]);
   const [selectedPayRun, setSelectedPayRun] = useState('');
   const [reportData, setReportData] = useState([]);
@@ -39,15 +38,10 @@ export default function EmployeeWageReportPage() {
   const [orderBy, setOrderBy] = useState('');
   const [orderDirection, setOrderDirection] = useState('asc');
 
-  // Pagination states
-  const [page, setPage] = useState(1);
-  const [limit] = useState(50);
-  const [totalPages, setTotalPages] = useState(1);
-
   // State for locations (for filtering)
   const [locations, setLocations] = useState([]);
 
-  // Fetch available pay runs to populate the dropdown
+  // Fetch available pay runs to populate the pay run dropdown
   useEffect(() => {
     const fetchPayRuns = async () => {
       try {
@@ -60,7 +54,7 @@ export default function EmployeeWageReportPage() {
     fetchPayRuns();
   }, []);
 
-  // Fetch locations for the base location filter
+  // Fetch locations (to populate the base location filter)
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -73,19 +67,7 @@ export default function EmployeeWageReportPage() {
     fetchLocations();
   }, []);
 
-  // Handler to update sorting state when a column header is clicked
-  const handleSortRequest = (column) => {
-    const isAsc = orderBy === column && orderDirection === 'asc';
-    setOrderBy(column);
-    setOrderDirection(isAsc ? 'desc' : 'asc');
-  };
-
-  // Handle pagination page change
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // Generate Report: sends all filter & sort parameters to backend
+  // Handle report generation (existing behavior)
   const handleGenerateReport = async () => {
     if (!selectedPayRun) {
       setMessage('Please select a pay run.');
@@ -94,21 +76,9 @@ export default function EmployeeWageReportPage() {
     setLoading(true);
     setMessage('');
     try {
-      const params = {
-        payRunId: selectedPayRun,
-        searchName, // for first/last name search
-        baseLocations: selectedLocations.join(','), // comma-separated
-        orderBy,
-        orderDirection,
-        page,
-        limit
-      };
-      const res = await api.get('/employee-wage-report', { params });
+      // You can pass additional filter parameters if your backend supports them.
+      const res = await api.get('/employee-wage-report', { params: { payRunId: selectedPayRun } });
       setReportData(res.data.report || []);
-      // If the backend sends pagination info, update totalPages:
-      if (res.data.pagination && res.data.pagination.pages) {
-        setTotalPages(res.data.pagination.pages);
-      }
     } catch (err) {
       console.error('Error generating report:', err);
       setMessage(err.response?.data?.message || 'Error generating report.');
@@ -117,13 +87,50 @@ export default function EmployeeWageReportPage() {
     }
   };
 
-  // Export to PDF (using the filtered reportData)
+  // Use useMemo to compute the filtered and sorted data
+  const filteredAndSortedData = useMemo(() => {
+    let data = [...reportData];
+
+    // Filter by base location if any are selected
+    if (selectedLocations.length > 0) {
+      data = data.filter((row) => selectedLocations.includes(row.baseLocation));
+    }
+    // Filter by searchName (search in firstName and lastName)
+    if (searchName.trim() !== '') {
+      const lowerSearch = searchName.toLowerCase();
+      data = data.filter(
+        (row) =>
+          row.firstName.toLowerCase().includes(lowerSearch) ||
+          row.lastName.toLowerCase().includes(lowerSearch)
+      );
+    }
+    // Sort data if a sort column is selected
+    if (orderBy) {
+      data.sort((a, b) => {
+        const aValue = a[orderBy];
+        const bValue = b[orderBy];
+        if (aValue < bValue) return orderDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return orderDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return data;
+  }, [reportData, selectedLocations, searchName, orderBy, orderDirection]);
+
+  // Handle sorting when a column header is clicked
+  const handleSortRequest = (column) => {
+    const isAsc = orderBy === column && orderDirection === 'asc';
+    setOrderDirection(isAsc ? 'desc' : 'asc');
+    setOrderBy(column);
+  };
+
+  // Export functions (unchanged)
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Employee Wage Report", 20, 20);
     let y = 30;
-    reportData.forEach((row, index) => {
+    filteredAndSortedData.forEach((row, index) => {
       doc.setFontSize(12);
       const line = `${row.firstName} ${row.lastName} | ${row.payrollId} | ${row.baseLocation} | NI Day Wage: ${row.niDayWage} | NI Regular Day Rate: ${row.niRegularDayRate} | NI Hours Used: ${row.niHoursUsed} | NI Hours Rate: ${row.niHoursRate} | Net NI Wage: ${row.netNIWage} | Net Cash Wage: ${row.netCashWage}`;
       doc.text(line, 10, y);
@@ -136,11 +143,10 @@ export default function EmployeeWageReportPage() {
     doc.save("EmployeeWageReport.pdf");
   };
 
-  // Export to CSV (using the filtered reportData)
   const handleExportCSV = () => {
-    if (!reportData.length) return;
+    if (!filteredAndSortedData.length) return;
     let csvContent = "First Name,Last Name,Payroll ID,Base Location,NI Day Wage,NI Regular Day Rate,NI Hours Used,NI Hours Rate,Net NI Wage,Net Cash Wage\n";
-    reportData.forEach((row) => {
+    filteredAndSortedData.forEach((row) => {
       csvContent += `"${row.firstName}","${row.lastName}","${row.payrollId}","${row.baseLocation}",${row.niDayWage},${row.niRegularDayRate},${row.niHoursUsed},${row.niHoursRate},${row.netNIWage},${row.netCashWage}\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -160,7 +166,7 @@ export default function EmployeeWageReportPage() {
         Employee Wage Report
       </Typography>
 
-      {/* Pay Run Selection & Generate Button */}
+      {/* Pay Run Selection & Report Generation */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
         <FormControl sx={{ minWidth: 250 }}>
           <InputLabel id="payrun-select-label">Select Pay Run</InputLabel>
@@ -172,9 +178,7 @@ export default function EmployeeWageReportPage() {
           >
             {payRuns.map((pr) => (
               <MenuItem key={pr._id} value={pr._id}>
-                {pr.payRunName} (
-                {new Date(pr.startDate).toLocaleDateString()} -{' '}
-                {new Date(pr.endDate).toLocaleDateString()})
+                {pr.payRunName} ({new Date(pr.startDate).toLocaleDateString()} - {new Date(pr.endDate).toLocaleDateString()})
               </MenuItem>
             ))}
           </Select>
@@ -188,9 +192,7 @@ export default function EmployeeWageReportPage() {
       {reportData.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <FormControl sx={{ minWidth: 250 }}>
-            <InputLabel id="base-location-filter-label">
-              Filter by Base Location
-            </InputLabel>
+            <InputLabel id="base-location-filter-label">Filter by Base Location</InputLabel>
             <Select
               labelId="base-location-filter-label"
               multiple
@@ -316,7 +318,7 @@ export default function EmployeeWageReportPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {reportData.map((row, index) => (
+                {filteredAndSortedData.map((row, index) => (
                   <TableRow key={index}>
                     <TableCell>{row.firstName}</TableCell>
                     <TableCell>{row.lastName}</TableCell>
@@ -340,14 +342,6 @@ export default function EmployeeWageReportPage() {
             <Button variant="outlined" onClick={handleExportCSV}>
               Export as CSV
             </Button>
-          </Box>
-          {/* Pagination (if your backend supports it) */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={handlePageChange}
-            />
           </Box>
         </>
       )}
