@@ -1,10 +1,18 @@
 // src/services/api.js
 import axios from 'axios';
 
+// Fallback if REACT_APP_API_URL is not set:
+const baseURL = process.env.REACT_APP_API_URL || 'https://expayroll-backend.onrender.com';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL // Adjust to your backend URL
+  baseURL,
+  withCredentials: true,   // if you need cookies or credentialed requests
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
+// Intercept outgoing requests and attach token if present
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

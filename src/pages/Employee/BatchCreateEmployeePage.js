@@ -9,12 +9,15 @@ import {
   TextField,
   Grid,
   Divider,
-  LinearProgress
+  LinearProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import api from '../../services/api';
 import Confetti from 'react-confetti';
+import InfoIcon from '@mui/icons-material/Info';
 
 export default function BatchCreateEmployeePage() {
   const navigate = useNavigate();
@@ -40,6 +43,46 @@ export default function BatchCreateEmployeePage() {
   // For measuring confetti area
   const confettiRef = useRef(null);
   const [confettiSize, setConfettiSize] = useState({ width: 0, height: 0 });
+
+  // Toggle for sample CSV + detail guide
+  const [showSample, setShowSample] = useState(false);
+
+  // A sample CSV template (tabs/spaces replaced by commas or you can keep it tab-delimited).
+  // The user-provided example is tab-delimited, but we can show it in CSV format.
+  const sampleCSV = `firstName,lastName,preferredName,gender,dateOfBirth,mobileNo,email,address,payrollId,status,baseLocationId,locationAccess,payStructureName,hasDailyRates,niDayMode,ni_regularDays,ni_regularDayRate,ni_extraDayRate,ni_extraShiftRate,cashDayMode,cash_regularDays,cash_regularDayRate,cash_extraDayRate,cash_extraShiftRate,hasHourlyRates,niHoursMode,minNiHours,maxNiHours,percentageNiHours,niRatePerHour,fixedNiHours,cashHoursMode,minCashHours,maxCashHours,percentageCashHours,cashRatePerHour,hasOtherConsiderations,note
+Abdul,Babul,Abdul Kadir Babul,Male,1985-10-25,7516532273,E1@gmail.com,TestAd1,E1,Employed,LR,"DAR;LR;HR;RO;DON","W3-10 018",FALSE,NONE,,,,,NONE,,,,,TRUE,CUSTOM,20,50,11.44,,REST,,,7,,`;
+
+  // A brief explanation of each column
+  const detailGuide = `
+Detailed Guide for Each CSV Column:
+
+1) firstName:  Employee's first name (required).
+2) lastName:   Employee's last name (required).
+3) preferredName:  Nickname or preferred name (optional).
+4) gender:     "Male", "Female", or "Other" (string).
+5) dateOfBirth:  Use ISO format "YYYY-MM-DD" or any date recognized by JS Date.
+6) mobileNo:   Employee's mobile phone number.
+7) email:      Unique email address for the employee (required).
+8) address:    Home address or mailing address.
+9) payrollId:  Optional ID used in payroll systems.
+10) status:    "Employed", "On Leave", or "Left".
+11) baseLocationId: Must match a location code from your database (like "LR" or "DAR").
+12) locationAccess: Semicolon-separated list of location codes (e.g. "DAR;LR;HR").
+13) payStructureName: A label for the pay structure (e.g. "W3-10 018").
+14) hasDailyRates: "TRUE" or "FALSE".
+15) niDayMode: "NONE", "ALL", or "FIXED".
+16) ni_regularDays, ni_regularDayRate, ni_extraDayRate, ni_extraShiftRate: Numeric values for NI daily rates.
+17) cashDayMode: "NONE" or "ALL".
+18) cash_regularDays, cash_regularDayRate, cash_extraDayRate, cash_extraShiftRate: Numeric values for Cash daily rates.
+19) hasHourlyRates: "TRUE" or "FALSE".
+20) niHoursMode: "NONE", "ALL", "FIXED", or "CUSTOM".
+21) minNiHours, maxNiHours, percentageNiHours, niRatePerHour, fixedNiHours: Numeric values for NI hourly setup.
+22) cashHoursMode: "NONE", "ALL", "REST", or "CUSTOM".
+23) minCashHours, maxCashHours, percentageCashHours, cashRatePerHour: Numeric values for Cash hourly setup.
+24) hasOtherConsiderations: "TRUE" or "FALSE".
+25) note: Additional note if any.
+`;
+
   useEffect(() => {
     if (confettiRef.current) {
       setConfettiSize({
@@ -80,7 +123,7 @@ export default function BatchCreateEmployeePage() {
       chunk: (results) => {
         setParsedData((prev) => [...prev, ...results.data]);
         setParseProgress((prevCount) => prevCount + results.data.length);
-        setMessage(`Parsed ${parseProgress + results.data.length} rows so far...`);
+        setMessage((prevMessage) => `Parsed ${parseProgress + results.data.length} rows so far...`);
       },
       complete: () => {
         setParsing(false);
@@ -174,7 +217,9 @@ export default function BatchCreateEmployeePage() {
         totalUploaded += chunk.length;
         const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
         setUploadProgress(progressPercent);
-        setMessage(`Chunk ${i + 1} complete! Uploaded ${totalUploaded} of ${totalRecords} records.`);
+        setMessage(
+          `Chunk ${i + 1} complete! Uploaded ${totalUploaded} of ${totalRecords} records.`
+        );
       }
       setMessage('All employees uploaded successfully! 🎉');
       setShowConfetti(true);
@@ -199,9 +244,39 @@ export default function BatchCreateEmployeePage() {
         />
       )}
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Batch Create Employees
-        </Typography>
+        {/* Header Row with Info Icon */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4" gutterBottom sx={{ flex: 1 }}>
+            Batch Create Employees
+          </Typography>
+          <Tooltip title="Show a sample CSV template & guide">
+            <IconButton onClick={() => setShowSample((prev) => !prev)}>
+              <InfoIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {/* Sample CSV & Detailed Guide */}
+        {showSample && (
+          <Box sx={{ mt: 2, p: 2, border: '1px solid #ccc', borderRadius: 2, bgcolor: '#fafafa' }}>
+            <Typography variant="h6" gutterBottom>
+              Sample CSV Template (Copy/Paste):
+            </Typography>
+            <TextField
+              label="Sample CSV"
+              multiline
+              rows={6}
+              value={sampleCSV}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <Typography variant="body2" sx={{ mt: 2, whiteSpace: 'pre-line' }}>
+              {detailGuide}
+            </Typography>
+          </Box>
+        )}
+
+        <Divider sx={{ my: 2 }} />
 
         {/* 1) CSV File Upload */}
         <Box sx={{ mb: 2 }}>
@@ -248,11 +323,7 @@ export default function BatchCreateEmployeePage() {
             disabled={parsing}
           />
           <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={parseCSVTextEditable}
-              disabled={parsing}
-            >
+            <Button variant="outlined" onClick={parseCSVTextEditable} disabled={parsing}>
               {parsing ? 'Parsing...' : 'Parse Text (Editable)'}
             </Button>
             <Button
@@ -299,37 +370,18 @@ export default function BatchCreateEmployeePage() {
                         Employee #{rowIndex + 1}
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            label="First Name"
-                            value={row.firstName || ''}
-                            onChange={(e) =>
-                              handleFieldChange(rowIndex, 'firstName', e.target.value)
-                            }
-                            fullWidth
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            label="Last Name"
-                            value={row.lastName || ''}
-                            onChange={(e) =>
-                              handleFieldChange(rowIndex, 'lastName', e.target.value)
-                            }
-                            fullWidth
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            label="Preferred Name"
-                            value={row.preferredName || ''}
-                            onChange={(e) =>
-                              handleFieldChange(rowIndex, 'preferredName', e.target.value)
-                            }
-                            fullWidth
-                          />
-                        </Grid>
-                        {/* Add additional editable fields as needed */}
+                        {Object.keys(row).map((key, colIndex) => (
+                          <Grid item xs={12} sm={6} md={4} key={colIndex}>
+                            <TextField
+                              label={key}
+                              value={row[key] || ''}
+                              onChange={(e) =>
+                                handleFieldChange(rowIndex, key, e.target.value)
+                              }
+                              fullWidth
+                            />
+                          </Grid>
+                        ))}
                       </Grid>
                     </Paper>
                   ))}
@@ -337,12 +389,45 @@ export default function BatchCreateEmployeePage() {
               </>
             ) : (
               <Box sx={{ mt: 3, p: 2, backgroundColor: '#e8f5e9', borderRadius: 1 }}>
-                <Typography variant="h6">
-                  Quick Parse Summary:
-                </Typography>
-                <Typography variant="body1">
-                  Total Employees Parsed: {parsedData.length}
-                </Typography>
+                <Typography variant="h6">Quick Parse Summary:</Typography>
+                <Paper sx={{ mt: 2, overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        {parsedData.length > 0 &&
+                          Object.keys(parsedData[0]).map((key, index) => (
+                            <th
+                              key={index}
+                              style={{
+                                border: '1px solid #ccc',
+                                padding: '8px',
+                                textAlign: 'left'
+                              }}
+                            >
+                              {key}
+                            </th>
+                          ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedData.map((row, rowIndex) => (
+                        <tr key={rowIndex}>
+                          {Object.keys(row).map((key, index) => (
+                            <td
+                              key={index}
+                              style={{
+                                border: '1px solid #ccc',
+                                padding: '8px'
+                              }}
+                            >
+                              {row[key]}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Paper>
               </Box>
             )}
           </Box>

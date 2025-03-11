@@ -10,10 +10,18 @@ var _axios = _interopRequireDefault(require("axios"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 // src/services/api.js
-var api = _axios["default"].create({
-  baseURL: process.env.REACT_APP_API_URL // Adjust to your backend URL
+// Fallback if REACT_APP_API_URL is not set:
+var baseURL = process.env.REACT_APP_API_URL || 'https://expayroll-backend.onrender.com';
 
-});
+var api = _axios["default"].create({
+  baseURL: baseURL,
+  withCredentials: true,
+  // if you need cookies or credentialed requests
+  headers: {
+    'Content-Type': 'application/json'
+  }
+}); // Intercept outgoing requests and attach token if present
+
 
 api.interceptors.request.use(function (config) {
   var token = localStorage.getItem('token');
