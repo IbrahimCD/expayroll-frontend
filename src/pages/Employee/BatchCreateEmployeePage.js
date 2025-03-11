@@ -203,7 +203,7 @@ Detailed Guide for Each CSV Column:
     setUploadProgress(0);
 
     // Chunk the data (e.g., 10 records per chunk)
-    const chunkSize = 10;
+    const chunkSize = 50;
     const chunks = chunkArray(parsedData, chunkSize);
     const totalChunks = chunks.length;
     const totalRecords = parsedData.length;
