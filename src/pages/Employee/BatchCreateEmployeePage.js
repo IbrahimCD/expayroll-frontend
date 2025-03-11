@@ -44,43 +44,81 @@ export default function BatchCreateEmployeePage() {
   const confettiRef = useRef(null);
   const [confettiSize, setConfettiSize] = useState({ width: 0, height: 0 });
 
-  // Toggle for sample CSV + detail guide
+  // Toggle for sample CSV + detailed guide
   const [showSample, setShowSample] = useState(false);
 
-  // A sample CSV template (tabs/spaces replaced by commas or you can keep it tab-delimited).
-  // The user-provided example is tab-delimited, but we can show it in CSV format.
-  const sampleCSV = `firstName,lastName,preferredName,gender,dateOfBirth,mobileNo,email,address,payrollId,status,baseLocationId,locationAccess,payStructureName,hasDailyRates,niDayMode,ni_regularDays,ni_regularDayRate,ni_extraDayRate,ni_extraShiftRate,cashDayMode,cash_regularDays,cash_regularDayRate,cash_extraDayRate,cash_extraShiftRate,hasHourlyRates,niHoursMode,minNiHours,maxNiHours,percentageNiHours,niRatePerHour,fixedNiHours,cashHoursMode,minCashHours,maxCashHours,percentageCashHours,cashRatePerHour,hasOtherConsiderations,note
-Abdul,Babul,Abdul Kadir Babul,Male,1985-10-25,7516532273,E1@gmail.com,TestAd1,E1,Employed,LR,"DAR;LR;HR;RO;DON","W3-10 018",FALSE,NONE,,,,,NONE,,,,,TRUE,CUSTOM,20,50,11.44,,REST,,,7,,`;
+  // Updated sample CSV template
+  const sampleCSV = `firstName,lastName,preferredName,gender,dateOfBirth,mobileNo,email,address,payrollId,status,baseLocationId,locationAccess,payStructureName,hasDailyRates,niDayMode,ni_regularDays,ni_regularDayRate,ni_extraDayRate,ni_extraShiftRate,cashDayMode,cash_regularDays,cash_regularDayRate,cash_extraDayRate,cash_extraShiftRate,hasHourlyRates,niHoursMode,minNiHours,maxNiHours,percentageNiHours,niRatePerHour,fixedNiHours,cashHoursMode,minCashHours,maxCashHours,percentageCashHours,cashRatePerHour,hasOtherConsiderations,note,niAdditions,niDeductions,cashAdditions,cashDeductions
+John,Doe,Johnny,Male,1990-01-01,1234567890,john.doe@example.com,123 Main St,E123,Employed,NY,"NY;LA;CHI","Standard Plan",TRUE,ALL,5,120,80,40,ALL,5,100,70,25,TRUE,FIXED,20,50,0,11.44,10,REST,5,30,0,8,TRUE,"Regular employee",50,5,20,2`;
 
-  // A brief explanation of each column
+  // Updated detailed guide text (displayed inside the Info tooltip)
   const detailGuide = `
-Detailed Guide for Each CSV Column:
+Batch Create Employees Guide:
+
+Step 1: CSV Structure
+---------------------
+Your CSV file must include the following columns (in this exact order):
 
 1) firstName:  Employee's first name (required).
 2) lastName:   Employee's last name (required).
 3) preferredName:  Nickname or preferred name (optional).
-4) gender:     "Male", "Female", or "Other" (string).
-5) dateOfBirth:  Use ISO format "YYYY-MM-DD" or any date recognized by JS Date.
-6) mobileNo:   Employee's mobile phone number.
-7) email:      Unique email address for the employee (required).
-8) address:    Home address or mailing address.
-9) payrollId:  Optional ID used in payroll systems.
+4) gender:     "Male", "Female", or "Other".
+5) dateOfBirth:  Use ISO format "YYYY-MM-DD".
+6) mobileNo:   Employee's mobile number.
+7) email:      Unique email address (required).
+8) address:    Employee's mailing address.
+9) payrollId:  Optional payroll identifier.
 10) status:    "Employed", "On Leave", or "Left".
-11) baseLocationId: Must match a location code from your database (like "LR" or "DAR").
-12) locationAccess: Semicolon-separated list of location codes (e.g. "DAR;LR;HR").
-13) payStructureName: A label for the pay structure (e.g. "W3-10 018").
+11) baseLocationId: Location code (e.g., "NY", "LR").
+12) locationAccess: Semicolon-separated location codes (e.g., "NY;LA;CHI").
+13) payStructureName: Label for the pay structure.
 14) hasDailyRates: "TRUE" or "FALSE".
-15) niDayMode: "NONE", "ALL", or "FIXED".
-16) ni_regularDays, ni_regularDayRate, ni_extraDayRate, ni_extraShiftRate: Numeric values for NI daily rates.
-17) cashDayMode: "NONE" or "ALL".
-18) cash_regularDays, cash_regularDayRate, cash_extraDayRate, cash_extraShiftRate: Numeric values for Cash daily rates.
-19) hasHourlyRates: "TRUE" or "FALSE".
-20) niHoursMode: "NONE", "ALL", "FIXED", or "CUSTOM".
-21) minNiHours, maxNiHours, percentageNiHours, niRatePerHour, fixedNiHours: Numeric values for NI hourly setup.
-22) cashHoursMode: "NONE", "ALL", "REST", or "CUSTOM".
-23) minCashHours, maxCashHours, percentageCashHours, cashRatePerHour: Numeric values for Cash hourly setup.
-24) hasOtherConsiderations: "TRUE" or "FALSE".
-25) note: Additional note if any.
+15) niDayMode: Options: "NONE", "ALL", or "FIXED".
+16) ni_regularDays: Numeric value for NI regular days.
+17) ni_regularDayRate: Numeric value for NI regular day rate.
+18) ni_extraDayRate: Numeric value for NI extra day rate.
+19) ni_extraShiftRate: Numeric value for NI extra shift rate.
+20) cashDayMode: Options: "NONE" or "ALL".
+21) cash_regularDays: Numeric value for Cash regular days.
+22) cash_regularDayRate: Numeric value for Cash regular day rate.
+23) cash_extraDayRate: Numeric value for Cash extra day rate.
+24) cash_extraShiftRate: Numeric value for Cash extra shift rate.
+25) hasHourlyRates: "TRUE" or "FALSE".
+26) niHoursMode: Options: "NONE", "ALL", "FIXED", or "CUSTOM".
+27) minNiHours: Minimum NI hours (numeric).
+28) maxNiHours: Maximum NI hours (numeric).
+29) percentageNiHours: Percentage for NI hours (numeric).
+30) niRatePerHour: NI rate per hour (numeric).
+31) fixedNiHours: Fixed NI hours (numeric).
+32) cashHoursMode: Options: "NONE", "ALL", "REST", or "CUSTOM".
+33) minCashHours: Minimum Cash hours (numeric).
+34) maxCashHours: Maximum Cash hours (numeric).
+35) percentageCashHours: Percentage for Cash hours (numeric).
+36) cashRatePerHour: Cash rate per hour (numeric).
+37) hasOtherConsiderations: "TRUE" or "FALSE".
+38) note: Any additional note.
+39) niAdditions: For NI additions, enter an amount (e.g., "50") or a label and amount separated by a colon (e.g., "Transport:50").
+40) niDeductions: For NI deductions, enter an amount or label:amount.
+41) cashAdditions: For Cash additions, enter an amount or label:amount.
+42) cashDeductions: For Cash deductions, enter an amount or label:amount.
+
+Step 2: Example CSV Row
+-----------------------
+Below is an example CSV row:
+
+firstName,lastName,preferredName,gender,dateOfBirth,mobileNo,email,address,payrollId,status,baseLocationId,locationAccess,payStructureName,hasDailyRates,niDayMode,ni_regularDays,ni_regularDayRate,ni_extraDayRate,ni_extraShiftRate,cashDayMode,cash_regularDays,cash_regularDayRate,cash_extraDayRate,cash_extraShiftRate,hasHourlyRates,niHoursMode,minNiHours,maxNiHours,percentageNiHours,niRatePerHour,fixedNiHours,cashHoursMode,minCashHours,maxCashHours,percentageCashHours,cashRatePerHour,hasOtherConsiderations,note,niAdditions,niDeductions,cashAdditions,cashDeductions
+John,Doe,Johnny,Male,1990-01-01,1234567890,john.doe@example.com,123 Main St,E123,Employed,NY,"NY;LA;CHI","Standard Plan",TRUE,ALL,5,120,80,40,ALL,5,100,70,25,TRUE,FIXED,20,50,0,11.44,10,REST,5,30,0,8,TRUE,"Regular employee",50,5,20,2
+
+*Note:* For the other considerations columns (niAdditions, niDeductions, cashAdditions, cashDeductions), if you want to add only an amount without a label, simply enter the number (like "50"). If you want to add a label, use a colon (for example, "Transport:50").
+
+Step 3: Batch Processing
+------------------------
+- The system will parse your CSV into employee objects.
+- You can review and edit the parsed data (if in Editable mode) before submission.
+- The batch create process splits the data into chunks (e.g., 50 records per chunk) and sends each chunk to the server.
+- After successful upload, a success message and confetti are displayed, and you are redirected to the employee list.
+
+Happy batch creating!
 `;
 
   useEffect(() => {
@@ -202,7 +240,7 @@ Detailed Guide for Each CSV Column:
     setMessage('');
     setUploadProgress(0);
 
-    // Chunk the data (e.g., 10 records per chunk)
+    // Chunk the data (e.g., 50 records per chunk)
     const chunkSize = 50;
     const chunks = chunkArray(parsedData, chunkSize);
     const totalChunks = chunks.length;
@@ -249,14 +287,14 @@ Detailed Guide for Each CSV Column:
           <Typography variant="h4" gutterBottom sx={{ flex: 1 }}>
             Batch Create Employees
           </Typography>
-          <Tooltip title="Show a sample CSV template & guide">
+          <Tooltip title={detailGuide} arrow>
             <IconButton onClick={() => setShowSample((prev) => !prev)}>
               <InfoIcon />
             </IconButton>
           </Tooltip>
         </Box>
 
-        {/* Sample CSV & Detailed Guide */}
+        {/* Sample CSV & Detailed Guide (toggle display) */}
         {showSample && (
           <Box sx={{ mt: 2, p: 2, border: '1px solid #ccc', borderRadius: 2, bgcolor: '#fafafa' }}>
             <Typography variant="h6" gutterBottom>
