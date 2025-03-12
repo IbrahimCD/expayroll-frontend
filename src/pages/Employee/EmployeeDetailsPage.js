@@ -7,10 +7,11 @@ import {
   Divider,
   Box,
   Grid,
-  Chip
+  Chip,
+  Button
 } from '@mui/material';
 import { keyframes } from '@mui/system';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 // Fade-in and slide-up animation
@@ -34,6 +35,7 @@ const gearGlow = keyframes`
 
 export default function EmployeeDetailsPage() {
   const { employeeId } = useParams();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [locations, setLocations] = useState([]);
   const [error, setError] = useState('');
@@ -90,6 +92,9 @@ export default function EmployeeDetailsPage() {
     );
   }
 
+  // Destructure pay structure for readability
+  const { payStructure } = employee;
+
   return (
     <Container sx={{ mt: 4, backgroundColor: '#fff', fontFamily: "'Merriweather', serif" }}>
       <Card
@@ -98,10 +103,22 @@ export default function EmployeeDetailsPage() {
           p: 2,
           boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
           animation: `${fadeInUp} 0.8s ease-out`,
-          backgroundColor: '#fff'
+          backgroundColor: '#fff',
+          position: 'relative'
         }}
       >
         <CardContent>
+          {/* Edit Button positioned at top right */}
+          <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => navigate(`/employees/edit/${employee._id}`)}
+            >
+              Edit
+            </Button>
+          </Box>
+
           {/* Header with gear glow */}
           <Typography
             variant="h3"
@@ -208,144 +225,185 @@ export default function EmployeeDetailsPage() {
           )}
 
           {/* Pay Structure Section */}
-          {employee.payStructure && (
+          {payStructure && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="h5" sx={{ color: '#333', fontWeight: 'bold' }}>
                 Pay Structure
               </Typography>
               <Box sx={{ pl: 2, mt: 1 }}>
                 <Typography variant="body1">
-                  <strong>Name:</strong> {employee.payStructure.payStructureName || 'N/A'}
+                  <strong>Name:</strong> {payStructure.payStructureName || 'N/A'}
                 </Typography>
+              </Box>
 
-                {/* Daily Rates Section */}
-                {employee.payStructure.hasDailyRates && employee.payStructure.dailyRates && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      Daily Rates:
-                    </Typography>
-
-                    {/* NI Daily Rates */}
-                    <Box sx={{ mt: 1, ml: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                        NI Daily Rates
+              {/* Daily Rates Section */}
+              {payStructure.hasDailyRates && payStructure.dailyRates && (
+                <Box sx={{ mt: 2, pl: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Daily Rates
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>NI Day Mode:</strong> {payStructure.dailyRates.niDayMode || 'N/A'}
+                  </Typography>
+                  {payStructure.dailyRates.niRates && (
+                    <Box sx={{ pl: 2, mt: 1 }}>
+                      <Typography variant="body2">
+                        <strong>NI Regular Days:</strong> {payStructure.dailyRates.niRates.regularDays}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Mode:</strong> {employee.payStructure.dailyRates.niDayMode || 'N/A'}
+                        <strong>NI Regular Day Rate:</strong> {payStructure.dailyRates.niRates.regularDayRate}
                       </Typography>
-                      {employee.payStructure.dailyRates.niDayMode === 'ALL' &&
-                        employee.payStructure.dailyRates.niRates && (
-                          <>
-                            <Typography variant="body2">
-                              <strong>Regular Days:</strong> {employee.payStructure.dailyRates.niRates.regularDays}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Regular Day Rate:</strong> {employee.payStructure.dailyRates.niRates.regularDayRate}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Extra Day Rate:</strong> {employee.payStructure.dailyRates.niRates.extraDayRate}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Extra Shift Rate:</strong> {employee.payStructure.dailyRates.niRates.extraShiftRate}
-                            </Typography>
-                          </>
-                        )}
-                      {employee.payStructure.dailyRates.niDayMode === 'FIXED' &&
-                        employee.payStructure.dailyRates.niRates && (
-                          <>
-                            <Typography variant="body2">
-                              <strong>Regular Days:</strong> {employee.payStructure.dailyRates.niRates.regularDays}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Regular Day Rate:</strong> {employee.payStructure.dailyRates.niRates.regularDayRate}
-                            </Typography>
-                          </>
-                        )}
-                    </Box>
-
-                    {/* Cash Daily Rates */}
-                    <Box sx={{ mt: 2, ml: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                        Cash Daily Rates
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Mode:</strong> {employee.payStructure.dailyRates.cashDayMode || 'N/A'}
-                      </Typography>
-                      {employee.payStructure.dailyRates.cashDayMode === 'ALL' &&
-                        employee.payStructure.dailyRates.cashRates && (
-                          <>
-                            <Typography variant="body2">
-                              <strong>Regular Days:</strong> {employee.payStructure.dailyRates.cashRates.regularDays}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Regular Day Rate:</strong> {employee.payStructure.dailyRates.cashRates.regularDayRate}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Extra Day Rate:</strong> {employee.payStructure.dailyRates.cashRates.extraDayRate}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Extra Shift Rate:</strong> {employee.payStructure.dailyRates.cashRates.extraShiftRate}
-                            </Typography>
-                          </>
-                        )}
-                    </Box>
-                  </Box>
-                )}
-
-                {/* Hourly Rates Section */}
-                {employee.payStructure.hasHourlyRates && employee.payStructure.hourlyRates && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      Hourly Rates:
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>NI Hours Mode:</strong> {employee.payStructure.hourlyRates.niHoursMode || 'N/A'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>NI Rate Per Hour:</strong> {employee.payStructure.hourlyRates.niRatePerHour ?? 'N/A'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Cash Hours Mode:</strong> {employee.payStructure.hourlyRates.cashHoursMode || 'N/A'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Cash Rate Per Hour:</strong> {employee.payStructure.hourlyRates.cashRatePerHour ?? 'N/A'}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Other Considerations Section */}
-                {employee.payStructure.hasOtherConsiderations &&
-                  employee.payStructure.otherConsiderations && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        Other Considerations:
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Note:</strong> {employee.payStructure.otherConsiderations.note || 'N/A'}
-                      </Typography>
-                      {employee.payStructure.otherConsiderations.niAdditions &&
-                        employee.payStructure.otherConsiderations.niAdditions.map((item, idx) => (
-                          <Chip
-                            key={idx}
-                            label={`NI Add: ${item.name} - ${item.amount}`}
-                            color="primary"
-                            size="small"
-                            sx={{ mr: 1, mt: 1 }}
-                          />
-                        ))}
-                      {employee.payStructure.otherConsiderations.niDeductions &&
-                        employee.payStructure.otherConsiderations.niDeductions.map((item, idx) => (
-                          <Chip
-                            key={idx}
-                            label={`NI Deduct: ${item.name} - ${item.amount}`}
-                            color="secondary"
-                            size="small"
-                            sx={{ mr: 1, mt: 1 }}
-                          />
-                        ))}
+                      {payStructure.dailyRates.niDayMode === 'ALL' && (
+                        <>
+                          <Typography variant="body2">
+                            <strong>NI Extra Day Rate:</strong> {payStructure.dailyRates.niRates.extraDayRate}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>NI Extra Shift Rate:</strong> {payStructure.dailyRates.niRates.extraShiftRate}
+                          </Typography>
+                        </>
+                      )}
                     </Box>
                   )}
-              </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2">
+                    <strong>Cash Day Mode:</strong> {payStructure.dailyRates.cashDayMode || 'N/A'}
+                  </Typography>
+                  {payStructure.dailyRates.cashRates && (
+                    <Box sx={{ pl: 2, mt: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Cash Regular Days:</strong> {payStructure.dailyRates.cashRates.regularDays}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Cash Regular Day Rate:</strong> {payStructure.dailyRates.cashRates.regularDayRate}
+                      </Typography>
+                      {payStructure.dailyRates.cashDayMode === 'ALL' && (
+                        <>
+                          <Typography variant="body2">
+                            <strong>Cash Extra Day Rate:</strong> {payStructure.dailyRates.cashRates.extraDayRate}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Cash Extra Shift Rate:</strong> {payStructure.dailyRates.cashRates.extraShiftRate}
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* Hourly Rates Section */}
+              {payStructure.hasHourlyRates && payStructure.hourlyRates && (
+                <Box sx={{ mt: 2, pl: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Hourly Rates
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>NI Hours Mode:</strong> {payStructure.hourlyRates.niHoursMode || 'N/A'}
+                  </Typography>
+                  <Box sx={{ pl: 2, mt: 1 }}>
+                    <Typography variant="body2">
+                      <strong>Min NI Hours:</strong> {payStructure.hourlyRates.minNiHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Max NI Hours:</strong> {payStructure.hourlyRates.maxNiHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>% NI Hours:</strong> {payStructure.hourlyRates.percentageNiHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>NI Rate Per Hour:</strong> {payStructure.hourlyRates.niRatePerHour}
+                    </Typography>
+                    {payStructure.hourlyRates.niHoursMode === 'FIXED' && (
+                      <Typography variant="body2">
+                        <strong>Fixed NI Hours:</strong> {payStructure.hourlyRates.fixedNiHours}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2">
+                    <strong>Cash Hours Mode:</strong> {payStructure.hourlyRates.cashHoursMode || 'N/A'}
+                  </Typography>
+                  <Box sx={{ pl: 2, mt: 1 }}>
+                    <Typography variant="body2">
+                      <strong>Min Cash Hours:</strong> {payStructure.hourlyRates.minCashHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Max Cash Hours:</strong> {payStructure.hourlyRates.maxCashHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>% Cash Hours:</strong> {payStructure.hourlyRates.percentageCashHours}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Cash Rate Per Hour:</strong> {payStructure.hourlyRates.cashRatePerHour}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Other Considerations Section */}
+              {payStructure.hasOtherConsiderations && payStructure.otherConsiderations && (
+                <Box sx={{ mt: 2, pl: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Other Considerations
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Note:</strong> {payStructure.otherConsiderations.note || 'N/A'}
+                  </Typography>
+                  {payStructure.otherConsiderations.niAdditions &&
+                    payStructure.otherConsiderations.niAdditions.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          NI Additions:
+                        </Typography>
+                        {payStructure.otherConsiderations.niAdditions.map((item, idx) => (
+                          <Typography key={idx} variant="body2">
+                            {item.name ? `${item.name} : ${item.amount}` : item.amount}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  {payStructure.otherConsiderations.niDeductions &&
+                    payStructure.otherConsiderations.niDeductions.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          NI Deductions:
+                        </Typography>
+                        {payStructure.otherConsiderations.niDeductions.map((item, idx) => (
+                          <Typography key={idx} variant="body2">
+                            {item.name ? `${item.name} : ${item.amount}` : item.amount}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  {payStructure.otherConsiderations.cashAdditions &&
+                    payStructure.otherConsiderations.cashAdditions.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          Cash Additions:
+                        </Typography>
+                        {payStructure.otherConsiderations.cashAdditions.map((item, idx) => (
+                          <Typography key={idx} variant="body2">
+                            {item.name ? `${item.name} : ${item.amount}` : item.amount}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  {payStructure.otherConsiderations.cashDeductions &&
+                    payStructure.otherConsiderations.cashDeductions.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          Cash Deductions:
+                        </Typography>
+                        {payStructure.otherConsiderations.cashDeductions.map((item, idx) => (
+                          <Typography key={idx} variant="body2">
+                            {item.name ? `${item.name} : ${item.amount}` : item.amount}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                </Box>
+              )}
             </Box>
           )}
         </CardContent>
