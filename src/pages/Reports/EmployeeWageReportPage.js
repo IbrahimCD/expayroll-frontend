@@ -124,7 +124,7 @@ export default function EmployeeWageReportPage() {
     setOrderBy(column);
   };
 
-  // Export functions (unchanged)
+  // Export functions (unchanged except for formatting amounts to 2 decimals)
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -132,7 +132,7 @@ export default function EmployeeWageReportPage() {
     let y = 30;
     filteredAndSortedData.forEach((row, index) => {
       doc.setFontSize(12);
-      const line = `${row.firstName} ${row.lastName} | ${row.payrollId} | ${row.baseLocation} | NI Day Wage: ${row.niDayWage} | NI Regular Day Rate: ${row.niRegularDayRate} | NI Hours Used: ${row.niHoursUsed} | NI Hours Rate: ${row.niHoursRate} | Net NI Wage: ${row.netNIWage} | Net Cash Wage: ${row.netCashWage}`;
+      const line = `${row.firstName} ${row.lastName} | ${row.payrollId} | ${row.baseLocation} | NI Day Wage: ${Number(row.niDayWage).toFixed(2)} | NI Regular Day Rate: ${Number(row.niRegularDayRate).toFixed(2)} | NI Hours Used: ${Number(row.niHoursUsed).toFixed(2)} | NI Hours Rate: ${Number(row.niHoursRate).toFixed(2)} | Net NI Wage: ${Number(row.netNIWage).toFixed(2)} | Net Cash Wage: ${Number(row.netCashWage).toFixed(2)}`;
       doc.text(line, 10, y);
       y += 10;
       if (y > 280) {
@@ -147,7 +147,7 @@ export default function EmployeeWageReportPage() {
     if (!filteredAndSortedData.length) return;
     let csvContent = "First Name,Last Name,Payroll ID,Base Location,NI Day Wage,NI Regular Day Rate,NI Hours Used,NI Hours Rate,Net NI Wage,Net Cash Wage\n";
     filteredAndSortedData.forEach((row) => {
-      csvContent += `"${row.firstName}","${row.lastName}","${row.payrollId}","${row.baseLocation}",${row.niDayWage},${row.niRegularDayRate},${row.niHoursUsed},${row.niHoursRate},${row.netNIWage},${row.netCashWage}\n`;
+      csvContent += `"${row.firstName}","${row.lastName}","${row.payrollId}","${row.baseLocation}",${Number(row.niDayWage).toFixed(2)},${Number(row.niRegularDayRate).toFixed(2)},${Number(row.niHoursUsed).toFixed(2)},${Number(row.niHoursRate).toFixed(2)},${Number(row.netNIWage).toFixed(2)},${Number(row.netCashWage).toFixed(2)}\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -324,12 +324,12 @@ export default function EmployeeWageReportPage() {
                     <TableCell>{row.lastName}</TableCell>
                     <TableCell>{row.payrollId}</TableCell>
                     <TableCell>{row.baseLocation}</TableCell>
-                    <TableCell>{row.niDayWage}</TableCell>
-                    <TableCell>{row.niRegularDayRate}</TableCell>
-                    <TableCell>{row.niHoursUsed}</TableCell>
-                    <TableCell>{row.niHoursRate}</TableCell>
-                    <TableCell>{row.netNIWage}</TableCell>
-                    <TableCell>{row.netCashWage}</TableCell>
+                    <TableCell>{Number(row.niDayWage).toFixed(2)}</TableCell>
+                    <TableCell>{Number(row.niRegularDayRate).toFixed(2)}</TableCell>
+                    <TableCell>{Number(row.niHoursUsed).toFixed(2)}</TableCell>
+                    <TableCell>{Number(row.niHoursRate).toFixed(2)}</TableCell>
+                    <TableCell>{Number(row.netNIWage).toFixed(2)}</TableCell>
+                    <TableCell>{Number(row.netCashWage).toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

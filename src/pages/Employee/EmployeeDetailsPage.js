@@ -141,6 +141,11 @@ export default function EmployeeDetailsPage() {
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body1">
+                  <strong>Employee ID:</strong> {employee._id}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body1">
                   <strong>First Name:</strong> {employee.firstName}
                 </Typography>
               </Grid>
@@ -170,7 +175,7 @@ export default function EmployeeDetailsPage() {
                   <strong>Mobile:</strong> {employee.mobileNo || 'N/A'}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <Typography variant="body1">
                   <strong>Email:</strong> {employee.email}
                 </Typography>
@@ -195,11 +200,13 @@ export default function EmployeeDetailsPage() {
                   <strong>Base Location:</strong> {baseLocationName}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
-                <Typography variant="body1">
-                  <strong>Description:</strong> {employee.description || 'N/A'}
-                </Typography>
-              </Grid>
+              {employee.description && (
+                <Grid item xs={12}>
+                  <Typography variant="body1">
+                    <strong>Description:</strong> {employee.description}
+                  </Typography>
+                </Grid>
+              )}
             </Grid>
           </Box>
 
@@ -406,6 +413,21 @@ export default function EmployeeDetailsPage() {
               )}
             </Box>
           )}
+
+          {/* Meta Information Section */}
+          <Box sx={{ mt: 2, pl: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Meta Information
+            </Typography>
+            <Typography variant="body2">
+              <strong>Created At:</strong>{' '}
+              {employee.createdAt ? new Date(employee.createdAt).toLocaleString() : 'N/A'}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Last Updated:</strong>{' '}
+              {employee.updatedAt ? new Date(employee.updatedAt).toLocaleString() : 'N/A'}
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     </Container>

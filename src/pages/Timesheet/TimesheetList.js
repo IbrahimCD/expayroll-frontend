@@ -102,6 +102,19 @@ export default function TimesheetList() {
     }
   };
 
+  // New function: Revert approved timesheet to draft
+  const handleRevert = async (id, e) => {
+    e.stopPropagation();
+    if (window.confirm('Revert this timesheet to Draft?')) {
+      try {
+        await api.put(`/timesheets/${id}/revert`);
+        fetchTimesheets();
+      } catch (error) {
+        console.error('Error reverting timesheet:', error);
+      }
+    }
+  };
+
   return (
     <Fade in={true} timeout={1000}>
       <Container
@@ -263,6 +276,15 @@ export default function TimesheetList() {
                               }}
                             >
                               Approve
+                            </Button>
+                          )}
+                          {ts.status === 'Approved' && (
+                            <Button
+                              size="small"
+                              color="primary"
+                              onClick={(e) => handleRevert(ts._id, e)}
+                            >
+                              Revert to Draft
                             </Button>
                           )}
                           <Button
