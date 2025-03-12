@@ -1,8 +1,9 @@
 // src/pages/Employee/EmployeeList.jsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Container,
   Typography,
+  Avatar,
   TextField,
   FormControl,
   InputLabel,
@@ -11,6 +12,7 @@ import {
   Pagination,
   Box,
   Button,
+  IconButton,
   Chip,
   Table,
   TableBody,
@@ -18,12 +20,19 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  TableSortLabel,
+  Paper
 } from '@mui/material';
+import { Edit } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { keyframes } from '@mui/system';
+
+// Animation: Slight pulse for avatars
+const avatarPulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+`;
 
 // Helper: Return color based on employee status
 const getStatusColor = (status) => {
@@ -46,11 +55,7 @@ export default function EmployeeList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Sorting states for Name, Base Location, and Payroll ID
-  const [orderBy, setOrderBy] = useState('name'); // "name" refers to the employee's name
-  const [orderDirection, setOrderDirection] = useState('asc');
-
-  // Fetch employees with filters & pagination from backend
+  // Fetch employees with filters & pagination
   const fetchEmployees = async () => {
     setLoading(true);
     try {
@@ -59,7 +64,7 @@ export default function EmployeeList() {
         status: statusFilter,
         payStructure: payStructureFilter,
         page,
-        limit: 20,
+        limit: 20
       };
       const res = await api.get('/employees', { params });
       setEmployees(res.data.employees);
@@ -74,56 +79,30 @@ export default function EmployeeList() {
 
   useEffect(() => {
     fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statusFilter, payStructureFilter, page]);
-
-  // Handle sorting requests
-  const handleSortRequest = (column) => {
-    if (orderBy === column) {
-      setOrderDirection(orderDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setOrderBy(column);
-      setOrderDirection('asc');
-    }
-  };
-
-  // Sort employees based on selected column and direction
-  const sortedEmployees = useMemo(() => {
-    let sorted = [...employees];
-    if (orderBy === 'name') {
-      sorted.sort((a, b) => {
-        const nameA = (a.preferredName || a.firstName || '').toLowerCase();
-        const nameB = (b.preferredName || b.firstName || '').toLowerCase();
-        if (nameA < nameB) return orderDirection === 'asc' ? -1 : 1;
-        if (nameA > nameB) return orderDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    } else if (orderBy === 'baseLocation') {
-      sorted.sort((a, b) => {
-        // Assuming baseLocationId is a string (e.g. location code)
-        const locA = a.baseLocationId ? a.baseLocationId.toLowerCase() : '';
-        const locB = b.baseLocationId ? b.baseLocationId.toLowerCase() : '';
-        if (locA < locB) return orderDirection === 'asc' ? -1 : 1;
-        if (locA > locB) return orderDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    } else if (orderBy === 'payrollId') {
-      sorted.sort((a, b) => {
-        const payrollA = a.payrollId ? a.payrollId.toLowerCase() : '';
-        const payrollB = b.payrollId ? b.payrollId.toLowerCase() : '';
-        if (payrollA < payrollB) return orderDirection === 'asc' ? -1 : 1;
-        if (payrollA > payrollB) return orderDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return sorted;
-  }, [employees, orderBy, orderDirection]);
 
   // Navigate to employee details page on row click
   const handleCardClick = (employeeId) => {
     navigate(`/employees/details/${employeeId}`);
   };
 
-  // Handle pagination change
+  // Prevent event propagation from action buttons
+  const stopPropagation = (e) => e.stopPropagation();
+
+  // Edit button handler
+  const handleEdit = (employeeId, e) => {
+    stopPropagation(e);
+    navigate(`/employees/edit/${employeeId}`);
+  };
+
+  // View details button handler
+  const handleViewDetails = (employeeId, e) => {
+    stopPropagation(e);
+    navigate(`/employees/details/${employeeId}`);
+  };
+
+  // Pagination change
   const handlePageChange = (event, value) => {
     setPage(value);
   };
@@ -176,11 +155,12 @@ export default function EmployeeList() {
               fontWeight: 'bold',
               boxShadow: 'none',
               ':hover': { bgcolor: '#ae8e55', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
-              fontFamily: `'Merriweather', serif`,
+              fontFamily: `'Merriweather', serif`
             }}
           >
             Add Employee
           </Button>
+          {/* New Batch Create Button */}
           <Button
             variant="contained"
             onClick={() => navigate('/employees/batch')}
@@ -190,7 +170,7 @@ export default function EmployeeList() {
               fontWeight: 'bold',
               boxShadow: 'none',
               ':hover': { bgcolor: '#3e352a', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
-              fontFamily: `'Merriweather', serif`,
+              fontFamily: `'Merriweather', serif`
             }}
           >
             Batch Create
@@ -204,7 +184,7 @@ export default function EmployeeList() {
               fontWeight: 'bold',
               boxShadow: 'none',
               ':hover': { bgcolor: '#3e352a', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
-              fontFamily: `'Merriweather', serif`,
+              fontFamily: `'Merriweather', serif`
             }}
           >
             Batch Update
@@ -221,56 +201,41 @@ export default function EmployeeList() {
           <Table>
             <TableHead>
               <TableRow>
-                {/* Sortable Columns */}
-                <TableCell sx={{ fontWeight: 'bold' }}>
-                  <TableSortLabel
-                    active={orderBy === 'name'}
-                    direction={orderBy === 'name' ? orderDirection : 'asc'}
-                    onClick={() => handleSortRequest('name')}
-                  >
-                    Name
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>
-                  <TableSortLabel
-                    active={orderBy === 'baseLocation'}
-                    direction={orderBy === 'baseLocation' ? orderDirection : 'asc'}
-                    onClick={() => handleSortRequest('baseLocation')}
-                  >
-                    Base Location
-                  </TableSortLabel>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Avatar</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>
-                  <TableSortLabel
-                    active={orderBy === 'payrollId'}
-                    direction={orderBy === 'payrollId' ? orderDirection : 'asc'}
-                    onClick={() => handleSortRequest('payrollId')}
-                  >
-                    Payroll ID
-                  </TableSortLabel>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Payroll ID</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Pay Structure</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                  Actions
-                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedEmployees.map((emp) => {
-                const displayName =
-                  emp.preferredName || emp.firstName || emp.lastName || 'U';
+              {employees.map((emp) => {
+                const displayName = emp.preferredName || emp.firstName || emp.lastName || 'U';
                 return (
                   <TableRow
                     key={emp._id}
                     onClick={() => handleCardClick(emp._id)}
                     sx={{ cursor: 'pointer' }}
                   >
-                    {/* Name column: combines employee name and base location */}
-                    <TableCell>{`${displayName} (${emp.baseLocationId || 'N/A'})`}</TableCell>
-                    <TableCell>{emp.baseLocationId || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Avatar
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          transition: 'transform 0.3s',
+                          '&:hover': { animation: `${avatarPulse} 1s infinite` },
+                          border: '2px solid #fff',
+                          backgroundColor: '#e0d2be'
+                        }}
+                        src={emp.profilePic || ''}
+                      >
+                        {displayName.charAt(0)}
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>{displayName}</TableCell>
                     <TableCell>{emp.email}</TableCell>
                     <TableCell>{emp.mobileNo || 'N/A'}</TableCell>
                     <TableCell>{emp.payrollId || 'N/A'}</TableCell>
@@ -287,7 +252,7 @@ export default function EmployeeList() {
                           sx={{
                             backgroundColor: '#c1a266',
                             color: '#fff',
-                            fontFamily: `'Merriweather', serif`,
+                            fontFamily: `'Merriweather', serif`
                           }}
                         />
                       )}
@@ -300,22 +265,24 @@ export default function EmployeeList() {
                             backgroundColor: '#FFD700',
                             color: '#000',
                             fontWeight: 'bold',
-                            fontFamily: `'Merriweather', serif`,
+                            fontFamily: `'Merriweather', serif`
                           }}
                         />
                       )}
                     </TableCell>
                     <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      {/* Only View Details action remains */}
+                      <IconButton
+                        onClick={(e) => handleEdit(emp._id, e)}
+                        sx={{ color: '#5e4b33' }}
+                      >
+                        <Edit />
+                      </IconButton>
                       <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/employees/details/${emp._id}`);
-                        }}
+                        onClick={(e) => handleViewDetails(emp._id, e)}
                         sx={{
                           color: '#5e4b33',
                           fontFamily: `'Merriweather', serif`,
-                          ':hover': { textDecoration: 'underline' },
+                          ':hover': { textDecoration: 'underline' }
                         }}
                       >
                         View Details
