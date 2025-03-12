@@ -56,7 +56,7 @@ export default function BatchUpdateEmployeePage() {
   const [employeeMessage, setEmployeeMessage] = useState('');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
 
-  // ---------- TAB 2: Update CSV ----------
+  // ---------- TAB 2: CSV Update ----------
   const [csvFile, setCsvFile] = useState(null);
   const [csvText, setCsvText] = useState('');
   const [parsedUpdates, setParsedUpdates] = useState([]);
@@ -82,6 +82,14 @@ export default function BatchUpdateEmployeePage() {
     };
     fetchLocations();
   }, []);
+
+  // NEW: Build a lookup object to map location ObjectId to location code
+  const locationLookup = useMemo(() => {
+    return locations.reduce((acc, loc) => {
+      acc[loc._id] = loc.code; // using the 'code' property
+      return acc;
+    }, {});
+  }, [locations]);
 
   // ---------- Fetch employees (with status filter only) ----------
   const fetchEmployees = async () => {
@@ -150,6 +158,13 @@ export default function BatchUpdateEmployeePage() {
       const dr = ps.dailyRates || {};
       const hr = ps.hourlyRates || {};
       const oc = (ps.hasOtherConsiderations && ps.otherConsiderations) || {};
+      
+      // NEW: Use the locationLookup to output the location code instead of the ObjectId
+      const baseLocationCode = locationLookup[emp.baseLocationId] || '';
+      const locationAccessCodes = (emp.locationAccess && Array.isArray(emp.locationAccess))
+        ? emp.locationAccess.map(id => locationLookup[id] || id).join(';')
+        : '';
+
       return {
         employeeId: emp._id,
         firstName: emp.firstName,
@@ -162,8 +177,9 @@ export default function BatchUpdateEmployeePage() {
         address: emp.address || '',
         payrollId: emp.payrollId || '',
         status: emp.status || '',
-        baseLocationId: emp.baseLocationId || '',
-        locationAccess: emp.locationAccess ? emp.locationAccess.join(';') : '',
+        // Use location code instead of the ObjectId:
+        baseLocationId: baseLocationCode,
+        locationAccess: locationAccessCodes,
         description: emp.description || '',
         payStructureName: ps.payStructureName || '',
         hasDailyRates: ps.hasDailyRates ? 'true' : 'false',
