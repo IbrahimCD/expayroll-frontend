@@ -1,4 +1,3 @@
-// frontend/src/pages/Employee/BatchUpdateEmployeePage.js
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
@@ -145,11 +144,12 @@ export default function BatchUpdateEmployeePage() {
       selectedEmployeeIds.includes(emp._id)
     );
 
-    // Build CSV rows. Adjust columns as needed.
+    // Build CSV rows. Here we include every field the employee holds.
     const csvData = selected.map((emp) => {
       const ps = emp.payStructure || {};
       const dr = ps.dailyRates || {};
       const hr = ps.hourlyRates || {};
+      const oc = (ps.hasOtherConsiderations && ps.otherConsiderations) || {};
       return {
         employeeId: emp._id,
         firstName: emp.firstName,
@@ -163,23 +163,46 @@ export default function BatchUpdateEmployeePage() {
         payrollId: emp.payrollId || '',
         status: emp.status || '',
         baseLocationId: emp.baseLocationId || '',
+        locationAccess: emp.locationAccess ? emp.locationAccess.join(';') : '',
+        description: emp.description || '',
         payStructureName: ps.payStructureName || '',
         hasDailyRates: ps.hasDailyRates ? 'true' : 'false',
         niDayMode: dr.niDayMode || '',
-        niRegularDays: dr.ni_regularDays || '',
-        niRegularDayRate: dr.ni_regularDayRate || '',
-        niExtraDayRate: dr.ni_extraDayRate || '',
-        niExtraShiftRate: dr.ni_extraShiftRate || '',
+        ni_regularDays: dr.ni_regularDays || '',
+        ni_regularDayRate: dr.ni_regularDayRate || '',
+        ni_extraDayRate: dr.ni_extraDayRate || '',
+        ni_extraShiftRate: dr.ni_extraShiftRate || '',
         cashDayMode: dr.cashDayMode || '',
-        cashRegularDays: dr.cash_regularDays || '',
-        cashRegularDayRate: dr.cash_regularDayRate || '',
-        cashExtraDayRate: dr.cash_extraDayRate || '',
-        cashExtraShiftRate: dr.cash_extraShiftRate || '',
+        cash_regularDays: dr.cash_regularDays || '',
+        cash_regularDayRate: dr.cash_regularDayRate || '',
+        cash_extraDayRate: dr.cash_extraDayRate || '',
+        cash_extraShiftRate: dr.cash_extraShiftRate || '',
         hasHourlyRates: ps.hasHourlyRates ? 'true' : 'false',
         niHoursMode: hr.niHoursMode || '',
+        minNiHours: hr.minNiHours || '',
+        maxNiHours: hr.maxNiHours || '',
+        percentageNiHours: hr.percentageNiHours || '',
         niRatePerHour: hr.niRatePerHour || '',
+        fixedNiHours: hr.fixedNiHours || '',
         cashHoursMode: hr.cashHoursMode || '',
-        cashRatePerHour: hr.cashRatePerHour || ''
+        minCashHours: hr.minCashHours || '',
+        maxCashHours: hr.maxCashHours || '',
+        percentageCashHours: hr.percentageCashHours || '',
+        cashRatePerHour: hr.cashRatePerHour || '',
+        hasOtherConsiderations: ps.hasOtherConsiderations ? 'true' : 'false',
+        note: oc.note || '',
+        niAdditions: oc.niAdditions
+          ? oc.niAdditions.map(item => item.name ? `${item.name}:${item.amount}` : item.amount).join(';')
+          : '',
+        niDeductions: oc.niDeductions
+          ? oc.niDeductions.map(item => item.name ? `${item.name}:${item.amount}` : item.amount).join(';')
+          : '',
+        cashAdditions: oc.cashAdditions
+          ? oc.cashAdditions.map(item => item.name ? `${item.name}:${item.amount}` : item.amount).join(';')
+          : '',
+        cashDeductions: oc.cashDeductions
+          ? oc.cashDeductions.map(item => item.name ? `${item.name}:${item.amount}` : item.amount).join(';')
+          : ''
       };
     });
 
@@ -453,8 +476,16 @@ export default function BatchUpdateEmployeePage() {
                   <TableBody>
                     {parsedUpdates.map((row, rowIndex) => (
                       <TableRow key={rowIndex}>
-                        {Object.values(row).map((cell, cellIndex) => (
-                          <TableCell key={cellIndex}>{cell}</TableCell>
+                        {Object.keys(row).map((key, index) => (
+                          <TableCell
+                            key={index}
+                            style={{
+                              border: '1px solid #ccc',
+                              padding: '8px'
+                            }}
+                          >
+                            {row[key]}
+                          </TableCell>
                         ))}
                       </TableRow>
                     ))}
