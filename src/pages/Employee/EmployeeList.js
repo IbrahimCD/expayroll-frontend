@@ -20,9 +20,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Tooltip
 } from '@mui/material';
 import { Edit } from '@mui/icons-material';
+import AlarmIcon from '@mui/icons-material/Alarm';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { keyframes } from '@mui/system';
@@ -100,6 +102,12 @@ export default function EmployeeList() {
   const handleViewDetails = (employeeId, e) => {
     stopPropagation(e);
     navigate(`/employees/details/${employeeId}`);
+  };
+
+  // New handler for creating a reminder for an employee.
+  const handleCreateReminder = (employeeId, e) => {
+    stopPropagation(e);
+    navigate(`/reminders/create?employeeId=${employeeId}`);
   };
 
   // Pagination change
@@ -277,6 +285,14 @@ export default function EmployeeList() {
                       >
                         <Edit />
                       </IconButton>
+                      <Tooltip title="Add Reminder">
+                        <IconButton
+                          onClick={(e) => handleCreateReminder(emp._id, e)}
+                          sx={{ color: '#5e4b33' }}
+                        >
+                          <AlarmIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Button
                         onClick={(e) => handleViewDetails(emp._id, e)}
                         sx={{

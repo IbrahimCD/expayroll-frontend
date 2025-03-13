@@ -61,6 +61,7 @@ function NavBar() {
     { label: 'Timesheets', route: '/timesheets' },
     { label: 'NIC & TAX', route: '/nictax' },
     { label: 'Pay Runs', route: '/payruns' },
+    { label: 'Reminder', route: '/reminders'},
     { label: 'Wage Cost Report', route: '/reports/wage-cost-allocation' },
     { label: 'Employee Wage Report', route: '/reports/employee-wage-report' }
   ];

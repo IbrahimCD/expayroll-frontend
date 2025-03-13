@@ -48,6 +48,12 @@ import BatchCreateNICTaxTemplatePage from './pages/NICTax/BatchCreateNICTaxTempl
 import EmployeeWageReportPage from './pages/Reports/EmployeeWageReportPage';
 import BatchUpdateEmployeePage from './pages/Employee/BatchUpdateEmployeePage';
 
+// Import Reminders & Notifications pages
+import ReminderList from './pages/Reminders/ReminderList';
+import CreateReminder from './pages/Reminders/CreateReminder';
+import ReminderDetails from './pages/Reminders/ReminderDetails';
+import NotificationList from './pages/Notifications/NotificationList';
+
 // Import NIC & TAX pages (new module)
 import {
   CreateNICTaxPage,
@@ -94,30 +100,30 @@ function App() {
             )
           }
         />
-<Route
-  path="/reports/employee-wage-report"
-  element={
-    isAuthenticated() ? (
-      <MainLayout>
-        <EmployeeWageReportPage />
-      </MainLayout>
-    ) : (
-      <Navigate to="/" replace />
-    )
-  }
-/>
-<Route
-  path="/employees/batch-update"
-  element={
-    isAuthenticated() ? (
-      <MainLayout>
-        <BatchUpdateEmployeePage />
-      </MainLayout>
-    ) : (
-      <Navigate to="/" replace />
-    )
-  }
-/>
+        <Route
+          path="/reports/employee-wage-report"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <EmployeeWageReportPage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/employees/batch-update"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <BatchUpdateEmployeePage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
 
         {/* Pay Run */}
         <Route
@@ -206,30 +212,30 @@ function App() {
             )
           }
         />
-<Route
-  path="/reports/wage-cost-allocation"
-  element={
-    isAuthenticated() ? (
-      <MainLayout>
-        <WageCostAllocationReportPage />
-      </MainLayout>
-    ) : (
-      <Navigate to="/" replace />
-    )
-  }
-/>
-<Route
-  path="/nictax/batch-template"
-  element={
-    isAuthenticated() ? (
-      <MainLayout>
-        <BatchCreateNICTaxTemplatePage />
-      </MainLayout>
-    ) : (
-      <Navigate to="/" replace />
-    )
-  }
-/>
+        <Route
+          path="/reports/wage-cost-allocation"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <WageCostAllocationReportPage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/nictax/batch-template"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <BatchCreateNICTaxTemplatePage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
 
         {/* Profile */}
         <Route
@@ -465,6 +471,58 @@ function App() {
             isAuthenticated() ? (
               <MainLayout>
                 <BatchCreateTimesheetPage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        {/* REMINDERS */}
+        <Route
+          path="/reminders"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <ReminderList />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/reminders/create"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <CreateReminder />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/reminders/:reminderId"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <ReminderDetails />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        {/* NOTIFICATIONS */}
+        <Route
+          path="/notifications"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <NotificationList />
               </MainLayout>
             ) : (
               <Navigate to="/" replace />
