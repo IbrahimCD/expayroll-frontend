@@ -87,8 +87,9 @@ export default function CreateNICTaxPage() {
   // 5) Create an empty row object
   const createEmptyRow = () => ({
     employeeId: '',
-    eesNIC: 0,
     erNIC: 0,
+    eesNIC: 0,
+    
     eesTax: 0,
     // maybe more fields if needed
   });
@@ -227,16 +228,6 @@ export default function CreateNICTaxPage() {
                     </TableCell>
                     <TableCell>
                       <TextField
-                        label="E'es NIC"
-                        type="number"
-                        value={row.eesNIC}
-                        onChange={(e) => handleEntryChange(index, 'eesNIC', +e.target.value)}
-                        variant="outlined"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
                         label="E'er NIC"
                         type="number"
                         value={row.erNIC}
@@ -245,6 +236,17 @@ export default function CreateNICTaxPage() {
                         size="small"
                       />
                     </TableCell>
+                    <TableCell>
+                      <TextField
+                        label="E'es NIC"
+                        type="number"
+                        value={row.eesNIC}
+                        onChange={(e) => handleEntryChange(index, 'eesNIC', +e.target.value)}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </TableCell>
+                   
                     <TableCell>
                       <TextField
                         label="E'es Tax"
