@@ -2,6 +2,7 @@
 import React from 'react';
 import { Typography, Paper, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import ReminderWidget from '../../components/ReminderWidget';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -22,5 +23,11 @@ function Dashboard() {
     </Box>
   );
 }
+
+
+// Inside your Dashboard component's JSX:
+<Box sx={{ mt: 3 }}>
+  <ReminderWidget />
+</Box>
 
 export default Dashboard;

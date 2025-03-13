@@ -1,8 +1,8 @@
-// src/pages/Reminders/ReminderList.jsx
 import React, { useEffect, useState } from 'react';
 import {
   Container,
   Typography,
+  TextField,
   Paper,
   Table,
   TableHead,
@@ -10,39 +10,34 @@ import {
   TableCell,
   TableBody,
   Button,
-  TextField,
   Box,
-  Select,
-  MenuItem,
+  Pagination,
   FormControl,
   InputLabel,
-  Pagination,
-  CircularProgress
+  Select,
+  MenuItem
 } from '@mui/material';
-import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 
 export default function ReminderList() {
+  const navigate = useNavigate();
   const [reminders, setReminders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const fetchReminders = async () => {
     setLoading(true);
-    setError('');
     try {
       const params = { search, status: statusFilter, page, limit: 10 };
       const res = await api.get('/reminders', { params });
-      setReminders(res.data.reminders);
-      if (res.data.totalPages) setTotalPages(res.data.totalPages);
+      setReminders(res.data.reminders || []);
+      setTotalPages(res.data.totalPages || 1);
     } catch (err) {
       console.error(err);
-      setError('Error fetching reminders.');
     } finally {
       setLoading(false);
     }
@@ -52,20 +47,23 @@ export default function ReminderList() {
     fetchReminders();
   }, [search, statusFilter, page]);
 
+  const handleRowClick = (id) => {
+    navigate(`/reminders/${id}`);
+  };
+
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Reminders List
+        Reminders
       </Typography>
-
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 2 }}>
         <TextField
           label="Search Reminders"
           variant="outlined"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
-        <FormControl variant="outlined" sx={{ minWidth: 150 }}>
+        <FormControl sx={{ minWidth: 150 }}>
           <InputLabel>Status</InputLabel>
           <Select
             label="Status"
@@ -74,7 +72,10 @@ export default function ReminderList() {
           >
             <MenuItem value="">All</MenuItem>
             <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="In Progress">In Progress</MenuItem>
             <MenuItem value="Completed">Completed</MenuItem>
+            <MenuItem value="Overdue">Overdue</MenuItem>
+            <MenuItem value="Escalated">Escalated</MenuItem>
           </Select>
         </FormControl>
         <Button variant="contained" onClick={() => navigate('/reminders/create')}>
@@ -83,42 +84,37 @@ export default function ReminderList() {
       </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
+        <Typography>Loading...</Typography>
       ) : (
         <Paper>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Employee Name</TableCell>
+                <TableCell>Employee</TableCell>
                 <TableCell>Note</TableCell>
                 <TableCell>Due Date</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell>Recurring</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reminders.map((rem) => (
-                <TableRow key={rem._id}>
-                  <TableCell>{rem.employeeName}</TableCell>
-                  <TableCell>{rem.note}</TableCell>
-                  <TableCell>{new Date(rem.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{rem.status}</TableCell>
-                  <TableCell>{new Date(rem.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell align="center">
-                    <Button variant="outlined" size="small" onClick={() => navigate(`/reminders/${rem._id}`)}>
-                      View/Edit
-                    </Button>
-                  </TableCell>
+              {reminders.map(reminder => (
+                <TableRow
+                  key={reminder._id}
+                  hover
+                  onClick={() => handleRowClick(reminder._id)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <TableCell>{reminder.employeeName}</TableCell>
+                  <TableCell>{reminder.note}</TableCell>
+                  <TableCell>{new Date(reminder.dueDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{reminder.status}</TableCell>
+                  <TableCell>{reminder.isRecurring ? reminder.recurrenceInterval : 'No'}</TableCell>
                 </TableRow>
               ))}
               {reminders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={5} align="center">
                     No reminders found.
                   </TableCell>
                 </TableRow>

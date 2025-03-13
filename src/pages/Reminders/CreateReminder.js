@@ -1,6 +1,18 @@
-// src/pages/Reminders/CreateReminder.jsx
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, TextField, Button, Paper, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Box,
+  Paper
+} from '@mui/material';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,51 +22,45 @@ export default function CreateReminder() {
   const [employeeName, setEmployeeName] = useState('');
   const [note, setNote] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [status, setStatus] = useState('Pending');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState('');
+  const [attachments, setAttachments] = useState('');
   const [employees, setEmployees] = useState([]);
-  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  // Fetch employees for the dropdown
+  // Fetch employees to populate dropdown
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await api.get('/employees', { params: { limit: 1000 } });
+        const res = await api.get('/employees');
         setEmployees(res.data.employees || []);
       } catch (err) {
         console.error(err);
-        setError('Error fetching employees.');
       }
     };
     fetchEmployees();
   }, []);
 
-  const handleEmployeeChange = (e) => {
-    const selectedId = e.target.value;
-    setEmployeeId(selectedId);
-    const emp = employees.find(emp => emp._id === selectedId);
-    setEmployeeName(emp ? `${emp.firstName} ${emp.lastName}` : '');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!employeeId || !note || !dueDate) {
-      setError('Please fill in all required fields.');
-      return;
-    }
     try {
-      const res = await api.post('/reminders', {
+      // Assume attachments are comma-separated URLs
+      const attachmentsArray = attachments.split(',').map(url => url.trim()).filter(url => url);
+      const payload = {
         employeeId,
         employeeName,
         note,
         dueDate,
-        status
-      });
+        isRecurring,
+        recurrenceInterval: isRecurring ? recurrenceInterval : null,
+        attachments: attachmentsArray
+      };
+      const res = await api.post('/reminders', payload);
       setMessage(res.data.message);
       navigate('/reminders');
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Error creating reminder.');
+      setMessage(err.response?.data?.message || 'Error creating reminder');
     }
   };
 
@@ -64,16 +70,18 @@ export default function CreateReminder() {
         <Typography variant="h4" gutterBottom>
           Create Reminder
         </Typography>
-        {error && <Typography color="error">{error}</Typography>}
         {message && <Typography color="primary">{message}</Typography>}
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+        <form onSubmit={handleSubmit}>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Select Employee</InputLabel>
+            <InputLabel>Employee</InputLabel>
             <Select
-              label="Select Employee"
+              label="Employee"
               value={employeeId}
-              onChange={handleEmployeeChange}
-              required
+              onChange={(e) => {
+                setEmployeeId(e.target.value);
+                const selected = employees.find(emp => emp._id === e.target.value);
+                setEmployeeName(selected ? `${selected.firstName} ${selected.lastName}` : '');
+              }}
             >
               {employees.map(emp => (
                 <MenuItem key={emp._id} value={emp._id}>
@@ -83,29 +91,65 @@ export default function CreateReminder() {
             </Select>
           </FormControl>
           <TextField
+            label="Employee Name"
             fullWidth
-            label="Note"
-            variant="outlined"
+            value={employeeName}
+            disabled
             sx={{ mb: 2 }}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            required
           />
           <TextField
+            label="Reminder Note"
             fullWidth
+            multiline
+            rows={4}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
             label="Due Date"
             type="date"
+            fullWidth
             InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            sx={{ mb: 2 }}
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            required
+            sx={{ mb: 2 }}
           />
-          <Button type="submit" variant="contained">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+              />
+            }
+            label="Recurring Reminder"
+            sx={{ mb: 2 }}
+          />
+          {isRecurring && (
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Recurrence Interval</InputLabel>
+              <Select
+                label="Recurrence Interval"
+                value={recurrenceInterval}
+                onChange={(e) => setRecurrenceInterval(e.target.value)}
+              >
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="monthly">Monthly</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          <TextField
+            label="Attachments (comma separated URLs)"
+            fullWidth
+            value={attachments}
+            onChange={(e) => setAttachments(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <Button variant="contained" type="submit">
             Create Reminder
           </Button>
-        </Box>
+        </form>
       </Paper>
     </Container>
   );
