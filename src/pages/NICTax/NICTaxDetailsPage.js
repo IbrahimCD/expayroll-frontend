@@ -101,8 +101,9 @@ export default function NICTaxDetailsPage() {
                 {nictax.entries.map((entry, idx) => (
                   <TableRow key={idx}>
                     <TableCell>{entry.employeeName}</TableCell>
-                    <TableCell>{entry.eesNIC}</TableCell>
                     <TableCell>{entry.erNIC}</TableCell>
+                    <TableCell>{entry.eesNIC}</TableCell>
+                  
                     <TableCell>{entry.eesTax}</TableCell>
                     <TableCell>{entry.notes || ''}</TableCell>
                   </TableRow>

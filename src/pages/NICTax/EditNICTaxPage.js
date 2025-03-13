@@ -102,8 +102,9 @@ export default function EditNICTaxPage() {
   const createEmptyRow = () => ({
     employeeId: '',
     employeeName: '',
-    eesNIC: 0,
     erNIC: 0,
+    eesNIC: 0,
+    
     eesTax: 0,
     notes: ''
   });
@@ -284,19 +285,20 @@ export default function EditNICTaxPage() {
                       <TableCell>
                         <TextField
                           type="number"
-                          value={entry.eesNIC}
-                          onChange={(e) => handleEntryChange(idx, 'eesNIC', +e.target.value)}
+                          value={entry.erNIC}
+                          onChange={(e) => handleEntryChange(idx, 'erNIC', +e.target.value)}
                           size="small"
                         />
                       </TableCell>
                       <TableCell>
                         <TextField
                           type="number"
-                          value={entry.erNIC}
-                          onChange={(e) => handleEntryChange(idx, 'erNIC', +e.target.value)}
+                          value={entry.eesNIC}
+                          onChange={(e) => handleEntryChange(idx, 'eesNIC', +e.target.value)}
                           size="small"
                         />
                       </TableCell>
+                     
                       <TableCell>
                         <TextField
                           type="number"
