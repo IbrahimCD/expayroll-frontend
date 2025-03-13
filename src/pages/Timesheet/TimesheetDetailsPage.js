@@ -94,14 +94,13 @@ export default function TimesheetDetailsPage() {
       'HoursWorked',
       'DaysWorked',
       'ExtraShiftWorked',
-
       'OtherCashAddition',
       'OtherCashDeduction',
       'Notes'
     ];
     // Convert each entry into a CSV row
     const rows = timesheet.entries.map((entry) => [
-      entry.employeeName || '', // or "N/A"
+      entry.employeeName || '',
       entry.hoursWorked || 0,
       entry.daysWorked || 0,
       entry.extraShiftWorked || 0,
@@ -148,7 +147,6 @@ export default function TimesheetDetailsPage() {
 
   return (
     <Container sx={{ mt: 4 }}>
-      {/* Animate the card in with fade-in and slide-up */}
       <Card
         sx={{
           animation: `${fadeInUp} 0.8s ease-out`,
@@ -185,12 +183,10 @@ export default function TimesheetDetailsPage() {
             Entries
           </Typography>
 
-          {/* If no entries, show fallback */}
           {(!timesheet.entries || timesheet.entries.length === 0) && (
             <Typography>No entries found.</Typography>
           )}
 
-          {/* Otherwise, show the table */}
           {timesheet.entries && timesheet.entries.length > 0 && (
             <TableContainer
               component={Paper}
@@ -198,7 +194,7 @@ export default function TimesheetDetailsPage() {
                 backgroundColor: '#fff',
                 boxShadow: 2,
                 borderRadius: 1,
-                maxHeight: 500 // Optional scroll if there are many rows
+                maxHeight: 500
               }}
             >
               <Table stickyHeader>
@@ -214,7 +210,6 @@ export default function TimesheetDetailsPage() {
                   </TableRow>
                 </TableHead>
 
-                {/* Animate each row with a fade */}
                 <TransitionGroup component={TableBody}>
                   {timesheet.entries.map((entry, idx) => (
                     <Fade key={idx} timeout={600} in appear>
@@ -226,12 +221,60 @@ export default function TimesheetDetailsPage() {
                         }}
                       >
                         <TableCell>{entry.employeeName || 'N/A'}</TableCell>
-                        <TableCell>{entry.hoursWorked || 0}</TableCell>
-                        <TableCell>{entry.daysWorked || 0}</TableCell>
-                        <TableCell>{entry.extraShiftWorked || 0}</TableCell>
-                        <TableCell>{entry.otherCashAddition || 0}</TableCell>
-                        <TableCell>{entry.otherCashDeduction || 0}</TableCell>
-                        <TableCell>
+                        <TableCell
+                          style={
+                            entry.hoursWorked && entry.hoursWorked !== 0
+                              ? { backgroundColor: '#e0f7fa', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
+                          {entry.hoursWorked || 0}
+                        </TableCell>
+                        <TableCell
+                          style={
+                            entry.daysWorked && entry.daysWorked !== 0
+                              ? { backgroundColor: '#e8f5e9', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
+                          {entry.daysWorked || 0}
+                        </TableCell>
+                        <TableCell
+                          style={
+                            entry.extraShiftWorked && entry.extraShiftWorked !== 0
+                              ? { backgroundColor: '#ffe0b2', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
+                          {entry.extraShiftWorked || 0}
+                        </TableCell>
+                        <TableCell
+                          style={
+                            entry.otherCashAddition &&
+                            entry.otherCashAddition !== 0
+                              ? { backgroundColor: '#c8e6c9', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
+                          {entry.otherCashAddition || 0}
+                        </TableCell>
+                        <TableCell
+                          style={
+                            entry.otherCashDeduction &&
+                            entry.otherCashDeduction !== 0
+                              ? { backgroundColor: '#ffcdd2', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
+                          {entry.otherCashDeduction || 0}
+                        </TableCell>
+                        <TableCell
+                          style={
+                            entry.notes && entry.notes.trim().length > 0
+                              ? { backgroundColor: '#fff9c4', fontWeight: 'bold' }
+                              : {}
+                          }
+                        >
                           {entry.notes && entry.notes.trim().length > 0
                             ? entry.notes
                             : '—'}
@@ -240,7 +283,6 @@ export default function TimesheetDetailsPage() {
                     </Fade>
                   ))}
 
-                  {/* Summary row */}
                   <Fade timeout={600} in appear>
                     <TableRow sx={{ backgroundColor: '#fafafa' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Totals:</TableCell>
@@ -251,13 +293,11 @@ export default function TimesheetDetailsPage() {
                         {totalDays}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>
-                        {/* Sum of extraShiftWorked if you want */}
                         {timesheet.entries.reduce(
                           (sum, e) => sum + (e.extraShiftWorked || 0),
                           0
                         )}
                       </TableCell>
-
                       <TableCell colSpan={4}></TableCell>
                     </TableRow>
                   </Fade>
