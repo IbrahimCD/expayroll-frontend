@@ -1,5 +1,5 @@
 // src/pages/Reports/EmployeeWageReportPage.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -9,14 +9,7 @@ import {
   Select,
   MenuItem,
   Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
   CircularProgress,
-  TableSortLabel,
   TextField
 } from '@mui/material';
 import api from '../../services/api';
@@ -26,7 +19,6 @@ export default function EmployeeWageReportPage() {
   // Existing states
   const [payRuns, setPayRuns] = useState([]);
   const [selectedPayRun, setSelectedPayRun] = useState('');
-  const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -34,12 +26,15 @@ export default function EmployeeWageReportPage() {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [searchName, setSearchName] = useState('');
 
-  // Sorting states
+  // Sorting states (if needed for filtering before export)
   const [orderBy, setOrderBy] = useState('');
   const [orderDirection, setOrderDirection] = useState('asc');
 
   // State for locations (for filtering)
   const [locations, setLocations] = useState([]);
+
+  // New state for report format (csv or pdf)
+  const [reportFormat, setReportFormat] = useState('csv');
 
   // Fetch available pay runs to populate the pay run dropdown
   useEffect(() => {
@@ -67,70 +62,13 @@ export default function EmployeeWageReportPage() {
     fetchLocations();
   }, []);
 
-  // Handle report generation (existing behavior)
-  const handleGenerateReport = async () => {
-    if (!selectedPayRun) {
-      setMessage('Please select a pay run.');
-      return;
-    }
-    setLoading(true);
-    setMessage('');
-    try {
-      // You can pass additional filter parameters if your backend supports them.
-      const res = await api.get('/employee-wage-report', { params: { payRunId: selectedPayRun } });
-      setReportData(res.data.report || []);
-    } catch (err) {
-      console.error('Error generating report:', err);
-      setMessage(err.response?.data?.message || 'Error generating report.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Use useMemo to compute the filtered and sorted data
-  const filteredAndSortedData = useMemo(() => {
-    let data = [...reportData];
-
-    // Filter by base location if any are selected
-    if (selectedLocations.length > 0) {
-      data = data.filter((row) => selectedLocations.includes(row.baseLocation));
-    }
-    // Filter by searchName (search in firstName and lastName)
-    if (searchName.trim() !== '') {
-      const lowerSearch = searchName.toLowerCase();
-      data = data.filter(
-        (row) =>
-          row.firstName.toLowerCase().includes(lowerSearch) ||
-          row.lastName.toLowerCase().includes(lowerSearch)
-      );
-    }
-    // Sort data if a sort column is selected
-    if (orderBy) {
-      data.sort((a, b) => {
-        const aValue = a[orderBy];
-        const bValue = b[orderBy];
-        if (aValue < bValue) return orderDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return orderDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return data;
-  }, [reportData, selectedLocations, searchName, orderBy, orderDirection]);
-
-  // Handle sorting when a column header is clicked
-  const handleSortRequest = (column) => {
-    const isAsc = orderBy === column && orderDirection === 'asc';
-    setOrderDirection(isAsc ? 'desc' : 'asc');
-    setOrderBy(column);
-  };
-
-  // Export functions (unchanged except for formatting amounts to 2 decimals)
-  const handleExportPDF = () => {
+  // Export function for PDF
+  const exportPDF = (data) => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Employee Wage Report", 20, 20);
     let y = 30;
-    filteredAndSortedData.forEach((row, index) => {
+    data.forEach((row) => {
       doc.setFontSize(12);
       const line = `${row.firstName} ${row.lastName} | ${row.payrollId} | ${row.baseLocation} | NI Day Wage: ${Number(row.niDayWage).toFixed(2)} | NI Regular Day Rate: ${Number(row.niRegularDayRate).toFixed(2)} | NI Hours Used: ${Number(row.niHoursUsed).toFixed(2)} | NI Hours Rate: ${Number(row.niHoursRate).toFixed(2)} | Net NI Wage: ${Number(row.netNIWage).toFixed(2)} | Net Cash Wage: ${Number(row.netCashWage).toFixed(2)}`;
       doc.text(line, 10, y);
@@ -143,10 +81,11 @@ export default function EmployeeWageReportPage() {
     doc.save("EmployeeWageReport.pdf");
   };
 
-  const handleExportCSV = () => {
-    if (!filteredAndSortedData.length) return;
-    let csvContent = "First Name,Last Name,Payroll ID,Base Location,NI Day Wage,NI Regular Day Rate,NI Hours Used,NI Hours Rate,Net NI Wage,Net Cash Wage\n";
-    filteredAndSortedData.forEach((row) => {
+  // Export function for CSV
+  const exportCSV = (data) => {
+    let csvContent =
+      "First Name,Last Name,Payroll ID,Base Location,NI Day Wage,NI Regular Day Rate,NI Hours Used,NI Hours Rate,Net NI Wage,Net Cash Wage\n";
+    data.forEach((row) => {
       csvContent += `"${row.firstName}","${row.lastName}","${row.payrollId}","${row.baseLocation}",${Number(row.niDayWage).toFixed(2)},${Number(row.niRegularDayRate).toFixed(2)},${Number(row.niHoursUsed).toFixed(2)},${Number(row.niHoursRate).toFixed(2)},${Number(row.netNIWage).toFixed(2)},${Number(row.netCashWage).toFixed(2)}\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -160,13 +99,64 @@ export default function EmployeeWageReportPage() {
     document.body.removeChild(link);
   };
 
+  // Generate report and immediately trigger download
+  const handleGenerateReport = async () => {
+    if (!selectedPayRun) {
+      setMessage('Please select a pay run.');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await api.get('/employee-wage-report', { params: { payRunId: selectedPayRun } });
+      let report = res.data.report || [];
+
+      // Apply filtering by base location if any selected
+      if (selectedLocations.length > 0) {
+        report = report.filter((row) => selectedLocations.includes(row.baseLocation));
+      }
+      // Apply search filter for name
+      if (searchName.trim() !== '') {
+        const lowerSearch = searchName.toLowerCase();
+        report = report.filter(
+          (row) =>
+            row.firstName.toLowerCase().includes(lowerSearch) ||
+            row.lastName.toLowerCase().includes(lowerSearch)
+        );
+      }
+      // Apply sorting if a sort column is selected
+      if (orderBy) {
+        report.sort((a, b) => {
+          const aValue = a[orderBy];
+          const bValue = b[orderBy];
+          if (aValue < bValue) return orderDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return orderDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      // Immediately trigger the download based on selected format
+      if (reportFormat === 'csv') {
+        exportCSV(report);
+      } else if (reportFormat === 'pdf') {
+        exportPDF(report);
+      }
+      setMessage('Report generated and download initiated.');
+    } catch (err) {
+      console.error('Error generating report:', err);
+      setMessage(err.response?.data?.message || 'Error generating report.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
         Employee Wage Report
       </Typography>
 
-      {/* Pay Run Selection & Report Generation */}
+      {/* Controls for generating report */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
         <FormControl sx={{ minWidth: 250 }}>
           <InputLabel id="payrun-select-label">Select Pay Run</InputLabel>
@@ -183,168 +173,51 @@ export default function EmployeeWageReportPage() {
             ))}
           </Select>
         </FormControl>
-        <Button variant="contained" onClick={handleGenerateReport}>
-          {loading ? <CircularProgress size={24} /> : 'Generate Report'}
+
+        {/* Report Format Selection */}
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel id="report-format-label">Report Format</InputLabel>
+          <Select
+            labelId="report-format-label"
+            value={reportFormat}
+            label="Report Format"
+            onChange={(e) => setReportFormat(e.target.value)}
+          >
+            <MenuItem value="csv">CSV</MenuItem>
+            <MenuItem value="pdf">PDF</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Optional Filters */}
+        <FormControl sx={{ minWidth: 250 }}>
+          <InputLabel id="base-location-filter-label">Filter by Base Location</InputLabel>
+          <Select
+            labelId="base-location-filter-label"
+            multiple
+            value={selectedLocations}
+            label="Filter by Base Location"
+            onChange={(e) => setSelectedLocations(e.target.value)}
+          >
+            {locations.map((loc) => (
+              <MenuItem key={loc._id} value={loc.name}>
+                {loc.name} ({loc.code})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Search by Name"
+          variant="outlined"
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+        />
+
+        <Button variant="contained" onClick={handleGenerateReport} disabled={loading}>
+          {loading ? <CircularProgress size={24} /> : 'Generate and Download Report'}
         </Button>
       </Box>
 
-      {/* New Filters: Multi-select for Base Location & Search by Name */}
-      {reportData.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-          <FormControl sx={{ minWidth: 250 }}>
-            <InputLabel id="base-location-filter-label">Filter by Base Location</InputLabel>
-            <Select
-              labelId="base-location-filter-label"
-              multiple
-              value={selectedLocations}
-              label="Filter by Base Location"
-              onChange={(e) => setSelectedLocations(e.target.value)}
-            >
-              {locations.map((loc) => (
-                <MenuItem key={loc._id} value={loc.name}>
-                  {loc.name} ({loc.code})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Search by Name"
-            variant="outlined"
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-          />
-        </Box>
-      )}
-
-      {message && <Typography color="error">{message}</Typography>}
-
-      {/* Report Table with Sorting */}
-      {reportData.length > 0 && (
-        <>
-          <Paper sx={{ mt: 2, overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'firstName'}
-                      direction={orderBy === 'firstName' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('firstName')}
-                    >
-                      First Name
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'lastName'}
-                      direction={orderBy === 'lastName' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('lastName')}
-                    >
-                      Last Name
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'payrollId'}
-                      direction={orderBy === 'payrollId' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('payrollId')}
-                    >
-                      Payroll ID
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'baseLocation'}
-                      direction={orderBy === 'baseLocation' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('baseLocation')}
-                    >
-                      Base Location
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'niDayWage'}
-                      direction={orderBy === 'niDayWage' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('niDayWage')}
-                    >
-                      NI Day Wage
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'niRegularDayRate'}
-                      direction={orderBy === 'niRegularDayRate' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('niRegularDayRate')}
-                    >
-                      NI Regular Day Rate
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'niHoursUsed'}
-                      direction={orderBy === 'niHoursUsed' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('niHoursUsed')}
-                    >
-                      NI Hours Used
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'niHoursRate'}
-                      direction={orderBy === 'niHoursRate' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('niHoursRate')}
-                    >
-                      NI Hours Rate
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'netNIWage'}
-                      direction={orderBy === 'netNIWage' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('netNIWage')}
-                    >
-                      Net NI Wage
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'netCashWage'}
-                      direction={orderBy === 'netCashWage' ? orderDirection : 'asc'}
-                      onClick={() => handleSortRequest('netCashWage')}
-                    >
-                      Net Cash Wage
-                    </TableSortLabel>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAndSortedData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{row.firstName}</TableCell>
-                    <TableCell>{row.lastName}</TableCell>
-                    <TableCell>{row.payrollId}</TableCell>
-                    <TableCell>{row.baseLocation}</TableCell>
-                    <TableCell>{Number(row.niDayWage).toFixed(2)}</TableCell>
-                    <TableCell>{Number(row.niRegularDayRate).toFixed(2)}</TableCell>
-                    <TableCell>{Number(row.niHoursUsed).toFixed(2)}</TableCell>
-                    <TableCell>{Number(row.niHoursRate).toFixed(2)}</TableCell>
-                    <TableCell>{Number(row.netNIWage).toFixed(2)}</TableCell>
-                    <TableCell>{Number(row.netCashWage).toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Paper>
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <Button variant="outlined" onClick={handleExportPDF}>
-              Export as PDF
-            </Button>
-            <Button variant="outlined" onClick={handleExportCSV}>
-              Export as CSV
-            </Button>
-          </Box>
-        </>
-      )}
+      {message && <Typography color="primary">{message}</Typography>}
     </Container>
   );
 }
