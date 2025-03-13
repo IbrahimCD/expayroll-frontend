@@ -81,7 +81,7 @@ export default function EditTimesheetPage() {
         setEndDate(new Date(ts.endDate).toISOString().split('T')[0]);
         setLocationId(ts.locationId);
 
-        // We now enhance each entry with pay structure info and location name if needed
+        // Enhance each entry with pay structure info and location name if needed
         const updatedEntries = await Promise.all(
           (ts.entries || []).map(async (entry) => {
             const newEntry = { ...entry };
@@ -91,10 +91,12 @@ export default function EditTimesheetPage() {
               try {
                 const empRes = await api.get(`/employees/${newEntry.employeeId}`);
                 const empData = empRes.data.employee || {};
-
-                // set hasDailyRates / hasHourlyRates from the employee's pay structure
                 newEntry.hasDailyRates = empData.payStructure?.hasDailyRates || false;
                 newEntry.hasHourlyRates = empData.payStructure?.hasHourlyRates || false;
+                // Also include employeeName if not already set
+                if (!newEntry.employeeName) {
+                  newEntry.employeeName = `${empData.firstName} ${empData.lastName}`;
+                }
               } catch (empErr) {
                 console.error('Error fetching employee data:', empErr);
               }
@@ -139,6 +141,7 @@ export default function EditTimesheetPage() {
   // =============== Create an empty entry object ===============
   const createEmptyRow = () => ({
     employeeId: '',
+    employeeName: '', // new field for employee name
     payrollId: '',
     baseLocation: '',
     hoursWorked: 0,
@@ -187,7 +190,7 @@ export default function EditTimesheetPage() {
       )
     : employees;
 
-  // =============== When an employee is selected, auto-fill payrollId, baseLocation, pay structure ===============
+  // =============== When an employee is selected, auto-fill payrollId, baseLocation, pay structure, and employeeName ===============
   const handleEmployeeSelect = async (index, selectedEmployeeId) => {
     const emp = filteredEmployees.find((e) => e._id === selectedEmployeeId);
     if (!emp) return;
@@ -212,6 +215,7 @@ export default function EditTimesheetPage() {
           return {
             ...entry,
             employeeId: selectedEmployeeId,
+            employeeName: `${emp.firstName} ${emp.lastName}`, // Added employeeName field
             payrollId: emp.payrollId || '',
             baseLocation: fetchedBaseLocation,
             hasDailyRates,
