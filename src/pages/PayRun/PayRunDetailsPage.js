@@ -1,3 +1,5 @@
+// src/pages/PayRun/PayRunDetailsPage.jsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Container,
@@ -29,6 +31,17 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import DoneIcon from '@mui/icons-material/Done';
 import UndoIcon from '@mui/icons-material/Undo';
 import PaidIcon from '@mui/icons-material/Paid';
+
+// Helper: Format a number to 2 decimals
+const formatToTwoDecimals = (value) => {
+  if (typeof value === 'number' && !isNaN(value)) {
+    return value.toFixed(2);
+  }
+  if (typeof value === 'string' && !isNaN(parseFloat(value))) {
+    return parseFloat(value).toFixed(2);
+  }
+  return value;
+};
 
 export default function PayRunDetailsPage() {
   const { payRunId } = useParams();
@@ -112,19 +125,11 @@ export default function PayRunDetailsPage() {
     }
   };
 
-  // 3) Numeric formatting helper
-  function formatToTwoDecimals(value) {
-    // Check if value is numeric
-    if (typeof value === 'number' && !isNaN(value)) {
-      return value.toFixed(2);
-    }
-    // If it's a string but represents a valid number, convert and format
-    if (typeof value === 'string' && !isNaN(parseFloat(value))) {
-      return parseFloat(value).toFixed(2);
-    }
-    // Otherwise, return the value as-is
-    return value;
-  }
+  // 3) CSV Download Handler
+  const handleDownloadCSV = () => {
+    // This endpoint should trigger a CSV download with all pay run details.
+    window.location.href = `${api.defaults.baseURL}/payruns/${payRunId}/export`;
+  };
 
   // 4) Modal open for a specific employee
   const handleViewDetails = (entry) => {
@@ -139,9 +144,8 @@ export default function PayRunDetailsPage() {
         sx={{
           mt: 4,
           textAlign: 'center',
-          // NASA cosmic background for the loading screen
           minHeight: '100vh',
-          background: `radial-gradient(circle at top,rgb(253, 253, 253) 0%,rgb(255, 255, 255) 35%,rgb(255, 255, 255) 100%)`,
+          background: `radial-gradient(circle at top, rgb(253, 253, 253) 0%, rgb(255, 255, 255) 35%, rgb(255, 255, 255) 100%)`,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center'
@@ -161,7 +165,7 @@ export default function PayRunDetailsPage() {
         sx={{
           mt: 4,
           minHeight: '100vh',
-          background: `radial-gradient(circle at top,rgb(240, 240, 240) 0%,rgb(255, 255, 255) 35%,rgb(255, 255, 255) 100%)`,
+          background: `radial-gradient(circle at top, rgb(240, 240, 240) 0%, rgb(255, 255, 255) 35%, rgb(255, 255, 255) 100%)`,
           pt: 4
         }}
       >
@@ -178,7 +182,7 @@ export default function PayRunDetailsPage() {
         sx={{
           mt: 4,
           minHeight: '100vh',
-          background: `radial-gradient(circle at top,rgb(252, 252, 252) 0%,rgb(249, 249, 249) 35%,rgb(248, 248, 248) 100%)`,
+          background: `radial-gradient(circle at top, rgb(252, 252, 252) 0%, rgb(249, 249, 249) 35%, rgb(248, 248, 248) 100%)`,
           pt: 4
         }}
       >
@@ -199,12 +203,11 @@ export default function PayRunDetailsPage() {
     entries = []
   } = payRun;
 
-  // 6) The main UI
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        background: `radial-gradient(circle at top,rgb(255, 255, 255) 0%,rgb(255, 255, 255) 35%,rgb(255, 255, 255) 100%)`,
+        background: `radial-gradient(circle at top, rgb(255, 255, 255) 0%, rgb(255, 255, 255) 35%, rgb(255, 255, 255) 100%)`,
         py: 4
       }}
     >
@@ -224,20 +227,18 @@ export default function PayRunDetailsPage() {
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
-              {/* Basic info */}
+              {/* Basic Info */}
               <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                 {payRunName}
               </Typography>
               <Typography variant="body1">
-                Date Range: {new Date(startDate).toLocaleDateString()} -{' '}
-                {new Date(endDate).toLocaleDateString()}
+                Date Range: {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
               </Typography>
               <Typography variant="body1" sx={{ mt: 1 }}>
                 Status: <strong>{status}</strong>
               </Typography>
               <Typography variant="body1">
-                Total Net Pay:{' '}
-                <strong>{formatToTwoDecimals(totalNetPay)}</strong>
+                Total Net Pay: <strong>{formatToTwoDecimals(totalNetPay)}</strong>
               </Typography>
               {notes && (
                 <Typography variant="body1" sx={{ mt: 1 }}>
@@ -245,9 +246,8 @@ export default function PayRunDetailsPage() {
                 </Typography>
               )}
 
-              {/* Recalc / Approve / Revert / Mark Paid Buttons */}
+              {/* Action Buttons */}
               <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {/* Show recalc if Draft or needsRecalculation */}
                 {(status === 'Draft' || needsRecalculation) && (
                   <Tooltip title="Perform cosmic recalculations with rocket precision!">
                     <Button
@@ -256,7 +256,6 @@ export default function PayRunDetailsPage() {
                       onClick={handleRecalc}
                       sx={{
                         position: 'relative',
-                        // "Shooting star" effect on hover:
                         '&:hover::after': {
                           content: '""',
                           position: 'absolute',
@@ -279,7 +278,6 @@ export default function PayRunDetailsPage() {
                     </Button>
                   </Tooltip>
                 )}
-
                 {status === 'Draft' && (
                   <Tooltip title="Approve this pay run for warp-speed payroll!">
                     <Button variant="contained" onClick={handleApprove} startIcon={<DoneIcon />}>
@@ -312,6 +310,13 @@ export default function PayRunDetailsPage() {
                 )}
               </Box>
 
+              {/* Download CSV Button */}
+              <Box sx={{ mt: 3 }}>
+                <Button variant="contained" color="primary" onClick={handleDownloadCSV}>
+                  Download CSV
+                </Button>
+              </Box>
+
               {/* Display success or error messages */}
               {message && (
                 <Alert severity="success" sx={{ mt: 2 }}>
@@ -336,9 +341,7 @@ export default function PayRunDetailsPage() {
                         </TableCell>
                       </TableRow>
                     </TableHead>
-
-                    {/* Animate each row's appearance */}
-                    <TransitionGroup component={TableBody}>
+                    <TransitionGroup component="tbody">
                       {entries.length > 0 ? (
                         entries.map((entry) => (
                           <Grow key={entry.employeeId} in appear timeout={600}>
@@ -350,13 +353,9 @@ export default function PayRunDetailsPage() {
                             >
                               <TableCell>{entry.employeeName}</TableCell>
                               <TableCell>{entry.payrollId || 'N/A'}</TableCell>
-                              {/* Show netWage with 2 decimals */}
                               <TableCell>{formatToTwoDecimals(entry.netWage)}</TableCell>
                               <TableCell align="center">
-                                <Button
-                                  variant="outlined"
-                                  onClick={() => handleViewDetails(entry)}
-                                >
+                                <Button variant="outlined" onClick={() => handleViewDetails(entry)}>
                                   View Details
                                 </Button>
                               </TableCell>
