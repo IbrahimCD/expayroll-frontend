@@ -70,7 +70,7 @@ export default function EditNICTaxPage() {
   // 3) Fetch employees (we only show those whose baseLocationId matches the selected baseLocation)
   const fetchEmployees = async () => {
     try {
-      const res = await api.get('/employees?limit=9999'); 
+      const res = await api.get('/employees?limit=9999');
       setEmployees(res.data.employees || []);
     } catch (err) {
       console.error('Error fetching employees:', err);
@@ -104,7 +104,6 @@ export default function EditNICTaxPage() {
     employeeName: '',
     erNIC: 0,
     eesNIC: 0,
-    
     eesTax: 0,
     notes: ''
   });
@@ -165,7 +164,6 @@ export default function EditNICTaxPage() {
       };
       const res = await api.put(`/nictax/${nictaxId}`, payload);
       setMessage(res.data.message || 'NIC & Tax record updated successfully');
-      // navigate back or stay
       navigate(`/nictax/${nictaxId}`);
     } catch (err) {
       console.error('Error updating NIC & Tax record:', err);
@@ -255,8 +253,8 @@ export default function EditNICTaxPage() {
                 <TableBody>
                   <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
                     <TableCell><strong>Employee</strong></TableCell>
-                    <TableCell><strong>E'es NIC</strong></TableCell>
                     <TableCell><strong>E'er NIC</strong></TableCell>
+                    <TableCell><strong>E'es NIC</strong></TableCell>
                     <TableCell><strong>E'es Tax</strong></TableCell>
                     <TableCell><strong>Notes</strong></TableCell>
                     <TableCell><strong>Action</strong></TableCell>
@@ -288,6 +286,7 @@ export default function EditNICTaxPage() {
                           value={entry.erNIC}
                           onChange={(e) => handleEntryChange(idx, 'erNIC', +e.target.value)}
                           size="small"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </TableCell>
                       <TableCell>
@@ -296,15 +295,16 @@ export default function EditNICTaxPage() {
                           value={entry.eesNIC}
                           onChange={(e) => handleEntryChange(idx, 'eesNIC', +e.target.value)}
                           size="small"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </TableCell>
-                     
                       <TableCell>
                         <TextField
                           type="number"
                           value={entry.eesTax}
                           onChange={(e) => handleEntryChange(idx, 'eesTax', +e.target.value)}
                           size="small"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </TableCell>
                       <TableCell>
@@ -324,11 +324,7 @@ export default function EditNICTaxPage() {
                 </TableBody>
               </Table>
               <Box sx={{ mt: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add />}
-                  onClick={handleAddRow}
-                >
+                <Button variant="outlined" startIcon={<Add />} onClick={handleAddRow}>
                   Add Row
                 </Button>
               </Box>

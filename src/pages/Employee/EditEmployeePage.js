@@ -127,7 +127,6 @@ export default function EditEmployeePage() {
           setHasDailyRates(emp.payStructure.hasDailyRates || false);
           if (emp.payStructure.hasDailyRates && emp.payStructure.dailyRates) {
             const dr = emp.payStructure.dailyRates;
-            // NI Rates: Check for nested structure first, then fallback to flat fields
             setNiDayMode(dr.niDayMode || 'NONE');
             if (dr.niRates) {
               setNiRegularDays(dr.niRates.regularDays || 0);
@@ -140,7 +139,6 @@ export default function EditEmployeePage() {
               setNiExtraDayRate(dr.ni_extraDayRate || 0);
               setNiExtraShiftRate(dr.ni_extraShiftRate || 0);
             }
-            // Cash Rates: Similarly, check for nested structure then fallback to flat fields
             setCashDayMode(dr.cashDayMode || 'NONE');
             if (dr.cashRates) {
               setCashRegularDays(dr.cashRates.regularDays || 0);
@@ -155,7 +153,6 @@ export default function EditEmployeePage() {
             }
           }
 
-          // Hourly Rates
           setHasHourlyRates(emp.payStructure.hasHourlyRates || false);
           if (emp.payStructure.hasHourlyRates && emp.payStructure.hourlyRates) {
             const hr = emp.payStructure.hourlyRates;
@@ -173,7 +170,6 @@ export default function EditEmployeePage() {
             setCashRatePerHour(hr.cashRatePerHour || 0);
           }
 
-          // Other Considerations
           setHasOtherConsiderations(emp.payStructure.hasOtherConsiderations || false);
           if (emp.payStructure.hasOtherConsiderations && emp.payStructure.otherConsiderations) {
             const oc = emp.payStructure.otherConsiderations;
@@ -481,6 +477,7 @@ export default function EditEmployeePage() {
                           value={niRegularDays}
                           onChange={(e) => setNiRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Regular Day Rate"
@@ -488,6 +485,7 @@ export default function EditEmployeePage() {
                           value={niRegularDayRate}
                           onChange={(e) => setNiRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Extra Day Rate"
@@ -495,6 +493,7 @@ export default function EditEmployeePage() {
                           value={niExtraDayRate}
                           onChange={(e) => setNiExtraDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Extra Shift Rate"
@@ -502,6 +501,7 @@ export default function EditEmployeePage() {
                           value={niExtraShiftRate}
                           onChange={(e) => setNiExtraShiftRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -513,6 +513,7 @@ export default function EditEmployeePage() {
                           value={niRegularDays}
                           onChange={(e) => setNiRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Regular Day Rate"
@@ -520,6 +521,7 @@ export default function EditEmployeePage() {
                           value={niRegularDayRate}
                           onChange={(e) => setNiRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -547,6 +549,7 @@ export default function EditEmployeePage() {
                           value={cashRegularDays}
                           onChange={(e) => setCashRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Regular Day Rate"
@@ -554,6 +557,7 @@ export default function EditEmployeePage() {
                           value={cashRegularDayRate}
                           onChange={(e) => setCashRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Extra Day Rate"
@@ -561,6 +565,7 @@ export default function EditEmployeePage() {
                           value={cashExtraDayRate}
                           onChange={(e) => setCashExtraDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Extra Shift Rate"
@@ -568,6 +573,7 @@ export default function EditEmployeePage() {
                           value={cashExtraShiftRate}
                           onChange={(e) => setCashExtraShiftRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -605,6 +611,7 @@ export default function EditEmployeePage() {
                           value={minNiHours}
                           onChange={(e) => setMinNiHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Max NI Hours"
@@ -613,6 +620,7 @@ export default function EditEmployeePage() {
                           onChange={(e) => setMaxNiHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="% NI Hours"
@@ -621,6 +629,7 @@ export default function EditEmployeePage() {
                           onChange={(e) => setPercentageNiHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -632,6 +641,7 @@ export default function EditEmployeePage() {
                           value={fixedNiHours}
                           onChange={(e) => setFixedNiHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -642,6 +652,7 @@ export default function EditEmployeePage() {
                       onChange={(e) => setNiRatePerHour(+e.target.value)}
                       margin="normal"
                       fullWidth
+                      inputProps={{ onWheel: (e) => e.target.blur() }}
                     />
 
                     <Typography variant="subtitle1" sx={{ mt: 2 }}>
@@ -665,6 +676,7 @@ export default function EditEmployeePage() {
                           value={minCashHours}
                           onChange={(e) => setMinCashHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Max Cash Hours"
@@ -673,6 +685,7 @@ export default function EditEmployeePage() {
                           onChange={(e) => setMaxCashHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="% Cash Hours"
@@ -681,6 +694,7 @@ export default function EditEmployeePage() {
                           onChange={(e) => setPercentageCashHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -691,6 +705,7 @@ export default function EditEmployeePage() {
                       onChange={(e) => setCashRatePerHour(+e.target.value)}
                       margin="normal"
                       fullWidth
+                      inputProps={{ onWheel: (e) => e.target.blur() }}
                     />
                   </Box>
                 )}
@@ -729,6 +744,7 @@ export default function EditEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleNiAddChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -751,6 +767,7 @@ export default function EditEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleNiDeductionChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -773,6 +790,7 @@ export default function EditEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleCashAddChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -795,6 +813,7 @@ export default function EditEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleCashDeductionChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
