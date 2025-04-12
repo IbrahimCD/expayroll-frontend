@@ -123,7 +123,6 @@ export default function CreateTimesheetPage() {
     hoursWorked: 0,
     daysWorked: 0,
     extraShiftWorked: 0,
-    // Removed: eesNIC, erNIC, eesTax
     otherCashAddition: 0,
     otherCashDeduction: 0,
     notes: '',
@@ -350,6 +349,7 @@ export default function CreateTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'hoursWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -364,6 +364,7 @@ export default function CreateTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'daysWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -378,6 +379,7 @@ export default function CreateTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'extraShiftWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -391,6 +393,7 @@ export default function CreateTimesheetPage() {
                               onChange={(e) => handleEntryChange(index, 'otherCashAddition', +e.target.value)}
                               variant="outlined"
                               size="small"
+                              inputProps={{ onWheel: (e) => e.target.blur() }}
                             />
                           </TableCell>
                           {/* Other Cash Deduction */}
@@ -401,6 +404,7 @@ export default function CreateTimesheetPage() {
                               onChange={(e) => handleEntryChange(index, 'otherCashDeduction', +e.target.value)}
                               variant="outlined"
                               size="small"
+                              inputProps={{ onWheel: (e) => e.target.blur() }}
                             />
                           </TableCell>
                           {/* Notes */}

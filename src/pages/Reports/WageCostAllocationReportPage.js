@@ -18,7 +18,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable'; // so we can do doc.autoTable(...)
+import 'jspdf-autotable';
 
 import api from '../../services/api';
 
@@ -72,7 +72,7 @@ export default function WageCostAllocationReportPage() {
     }
   };
 
-  // 3) Export to PDF
+  // 3) Export to PDF (unchanged)
   const handleExportPDF = () => {
     if (!reportData) return;
 
@@ -98,6 +98,7 @@ export default function WageCostAllocationReportPage() {
 
       const tableRows = ts.employees.map((emp) => [
         emp.employeeName,
+        emp.payStructureName,
         emp.payrollId,
         emp.allocatedNiWage.toFixed(2),
         emp.allocatedCashWage.toFixed(2),
@@ -108,6 +109,7 @@ export default function WageCostAllocationReportPage() {
       tableRows.push([
         'TOTAL',
         '',
+        '',
         ts.totals.allocatedNiWage.toFixed(2),
         ts.totals.allocatedCashWage.toFixed(2),
         ts.totals.allocatedEerNIC.toFixed(2),
@@ -117,6 +119,7 @@ export default function WageCostAllocationReportPage() {
       doc.autoTable({
         head: [[
           'Employee Name',
+          'Structure Name',
           'Payroll ID',
           'Allocated NI Wage',
           'Allocated Cash Wage',
@@ -135,31 +138,89 @@ export default function WageCostAllocationReportPage() {
     doc.save(`Wage_Cost_Allocation_${reportData.payRunName}.pdf`);
   };
 
-  // 4) Export to CSV
+  // 4) Export to CSV (already updated in previous step, shown for completeness)
   const handleExportCSV = () => {
     if (!reportData) return;
 
     let csvContent = '';
-    csvContent += `Wage Cost Allocation Report for: ${reportData.payRunName}\n\n`;
+    csvContent += `"Wage Cost Allocation Report for: ${reportData.payRunName}"\n\n`;
 
     reportData.wageCostAllocations.forEach((ts, index) => {
       csvContent += `Contributing Timesheet #${index + 1}\n`;
-      csvContent += `Timesheet Name,${ts.timesheetName}\n`;
-      csvContent += `Work Location,${ts.locationName || 'N/A'}\n`;
+      csvContent += `Timesheet Name:,${ts.timesheetName || 'N/A'}\n`;
+      csvContent += `Work Location:,${ts.locationName || 'N/A'}\n`;
+
       const startDate = ts.startDate ? new Date(ts.startDate).toLocaleDateString() : 'N/A';
       const endDate = ts.endDate ? new Date(ts.endDate).toLocaleDateString() : 'N/A';
-      csvContent += `Date Range,${startDate} - ${endDate}\n\n`;
+      csvContent += `Date Range:,${startDate} - ${endDate}\n`;
 
-      // Header row for table
-      csvContent += 'Employee Name,Payroll ID,Allocated NI Wage,Allocated Cash Wage,Allocated Eer NIC,Allocated Wage Cost\n';
+      const structureName = ts.employees.length ? ts.employees[0].payStructureName : 'N/A';
+      csvContent += `Structure Name:,${structureName}\n\n`;
 
-      // Employee rows
+      // New Column Order
+      csvContent += [
+        'Employee Name',
+        'Payroll ID',
+        'Structure Name',
+        'Hours Worked',
+        'Days Worked',
+        'Extra Shift',
+        'Addition',
+        'Deduction',
+        'Notes',
+        'Allocated NI Wage',
+        'Allocated Cash Wage',
+        'Allocated Eer NIC',
+        'Allocated Wage Cost'
+      ].join(',') + '\n';
+
       ts.employees.forEach((emp) => {
-        csvContent += `"${emp.employeeName}",${emp.payrollId},${emp.allocatedNiWage.toFixed(2)},${emp.allocatedCashWage.toFixed(2)},${emp.allocatedEerNIC.toFixed(2)},${emp.allocatedWageCost.toFixed(2)}\n`;
+        const matchingCT = reportData.contributingTimesheets.find(
+          (ct) =>
+            ct.employeeName === emp.employeeName &&
+            ct.timesheetName === ts.timesheetName
+        );
+
+        const hoursWorked = matchingCT ? matchingCT.hoursWorked.toFixed(2) : '0.00';
+        const daysWorked = matchingCT ? matchingCT.daysWorked.toFixed(2) : '0.00';
+        const extraShiftWorked = matchingCT ? matchingCT.extraShiftWorked.toFixed(2) : '0.00';
+        const addition = matchingCT ? matchingCT.addition.toFixed(2) : '0.00';
+        const deduction = matchingCT ? matchingCT.deduction.toFixed(2) : '0.00';
+        const notes = matchingCT ? matchingCT.notes : '';
+
+        csvContent += [
+          `"${emp.employeeName}"`,
+          emp.payrollId,
+          emp.payStructureName,
+          hoursWorked,
+          daysWorked,
+          extraShiftWorked,
+          addition,
+          deduction,
+          `"${notes}"`,
+          emp.allocatedNiWage.toFixed(2),
+          emp.allocatedCashWage.toFixed(2),
+          emp.allocatedEerNIC.toFixed(2),
+          emp.allocatedWageCost.toFixed(2)
+        ].join(',') + '\n';
       });
 
-      // Totals row
-      csvContent += `TOTAL,,${ts.totals.allocatedNiWage.toFixed(2)},${ts.totals.allocatedCashWage.toFixed(2)},${ts.totals.allocatedEerNIC.toFixed(2)},${ts.totals.allocatedWageCost.toFixed(2)}\n\n`;
+      // Totals
+      csvContent += [
+        'TOTAL',
+        '',
+        '',
+        '0',
+        '0',
+        '0',
+        '0',
+        '0',
+        '',
+        ts.totals.allocatedNiWage.toFixed(2),
+        ts.totals.allocatedCashWage.toFixed(2),
+        ts.totals.allocatedEerNIC.toFixed(2),
+        ts.totals.allocatedWageCost.toFixed(2)
+      ].join(',') + '\n\n';
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -230,11 +291,20 @@ export default function WageCostAllocationReportPage() {
                   -{' '}
                   {ts.endDate ? new Date(ts.endDate).toLocaleDateString() : 'N/A'}
                 </Typography>
+
+                {/* Single Table reflecting the new column order from CSV */}
                 <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Employee Name</TableCell>
                       <TableCell>Payroll ID</TableCell>
+                      <TableCell>Structure Name</TableCell>
+                      <TableCell>Hours Worked</TableCell>
+                      <TableCell>Days Worked</TableCell>
+                      <TableCell>Extra Shift</TableCell>
+                      <TableCell>Addition</TableCell>
+                      <TableCell>Deduction</TableCell>
+                      <TableCell>Notes</TableCell>
                       <TableCell>Allocated NI Wage</TableCell>
                       <TableCell>Allocated Cash Wage</TableCell>
                       <TableCell>Allocated Eer NIC</TableCell>
@@ -242,19 +312,61 @@ export default function WageCostAllocationReportPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {ts.employees.map((emp, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{emp.employeeName}</TableCell>
-                        <TableCell>{emp.payrollId}</TableCell>
-                        <TableCell>{emp.allocatedNiWage.toFixed(2)}</TableCell>
-                        <TableCell>{emp.allocatedCashWage.toFixed(2)}</TableCell>
-                        <TableCell>{emp.allocatedEerNIC.toFixed(2)}</TableCell>
-                        <TableCell>{emp.allocatedWageCost.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {ts.employees.map((emp, i) => {
+                      // Find matching "contributingTimesheets" record 
+                      // to get hours, days, extra shift, etc.
+                      const matchingCT = reportData.contributingTimesheets.find(
+                        (ct) =>
+                          ct.employeeName === emp.employeeName &&
+                          ct.timesheetName === ts.timesheetName
+                      );
+
+                      const hoursWorked = matchingCT
+                        ? matchingCT.hoursWorked.toFixed(2)
+                        : '0.00';
+                      const daysWorked = matchingCT
+                        ? matchingCT.daysWorked.toFixed(2)
+                        : '0.00';
+                      const extraShiftWorked = matchingCT
+                        ? matchingCT.extraShiftWorked.toFixed(2)
+                        : '0.00';
+                      const addition = matchingCT
+                        ? matchingCT.addition.toFixed(2)
+                        : '0.00';
+                      const deduction = matchingCT
+                        ? matchingCT.deduction.toFixed(2)
+                        : '0.00';
+                      const notes = matchingCT ? matchingCT.notes : '';
+
+                      return (
+                        <TableRow key={i}>
+                          <TableCell>{emp.employeeName}</TableCell>
+                          <TableCell>{emp.payrollId}</TableCell>
+                          <TableCell>{emp.payStructureName}</TableCell>
+                          <TableCell>{hoursWorked}</TableCell>
+                          <TableCell>{daysWorked}</TableCell>
+                          <TableCell>{extraShiftWorked}</TableCell>
+                          <TableCell>{addition}</TableCell>
+                          <TableCell>{deduction}</TableCell>
+                          <TableCell>{notes}</TableCell>
+                          <TableCell>{emp.allocatedNiWage.toFixed(2)}</TableCell>
+                          <TableCell>{emp.allocatedCashWage.toFixed(2)}</TableCell>
+                          <TableCell>{emp.allocatedEerNIC.toFixed(2)}</TableCell>
+                          <TableCell>{emp.allocatedWageCost.toFixed(2)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     <TableRow sx={{ fontWeight: 'bold' }}>
+                      {/* "TOTAL" row with zero or blank for hours/days/etc. */}
                       <TableCell>TOTAL</TableCell>
-                      <TableCell />
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell>0</TableCell>
+                      <TableCell>0</TableCell>
+                      <TableCell>0</TableCell>
+                      <TableCell>0</TableCell>
+                      <TableCell>0</TableCell>
+                      <TableCell></TableCell>
                       <TableCell>{ts.totals.allocatedNiWage.toFixed(2)}</TableCell>
                       <TableCell>{ts.totals.allocatedCashWage.toFixed(2)}</TableCell>
                       <TableCell>{ts.totals.allocatedEerNIC.toFixed(2)}</TableCell>
@@ -264,6 +376,8 @@ export default function WageCostAllocationReportPage() {
                 </Table>
               </Box>
             ))}
+
+            {/* Buttons to export PDF / CSV */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button variant="outlined" onClick={handleExportPDF}>
                 Export as PDF

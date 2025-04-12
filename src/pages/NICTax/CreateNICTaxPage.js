@@ -1,4 +1,4 @@
-// src/pages/NICTax/CreateNICTaxPage.jsx (for example)
+// src/pages/NICTax/CreateNICTaxPage.jsx
 import React, { useEffect, useState } from 'react';
 import {
   Container,
@@ -89,7 +89,6 @@ export default function CreateNICTaxPage() {
     employeeId: '',
     erNIC: 0,
     eesNIC: 0,
-    
     eesTax: 0,
     // maybe more fields if needed
   });
@@ -114,12 +113,7 @@ export default function CreateNICTaxPage() {
   // 9) When user picks an employee, auto-fill if needed
   const handleSelectEmployee = (index, employeeId) => {
     setEntries((prev) =>
-      prev.map((row, i) => {
-        if (i === index) {
-          return { ...row, employeeId };
-        }
-        return row;
-      })
+      prev.map((row, i) => (i === index ? { ...row, employeeId } : row))
     );
   };
 
@@ -234,6 +228,7 @@ export default function CreateNICTaxPage() {
                         onChange={(e) => handleEntryChange(index, 'erNIC', +e.target.value)}
                         variant="outlined"
                         size="small"
+                        inputProps={{ onWheel: (e) => e.target.blur() }}
                       />
                     </TableCell>
                     <TableCell>
@@ -244,9 +239,9 @@ export default function CreateNICTaxPage() {
                         onChange={(e) => handleEntryChange(index, 'eesNIC', +e.target.value)}
                         variant="outlined"
                         size="small"
+                        inputProps={{ onWheel: (e) => e.target.blur() }}
                       />
                     </TableCell>
-                   
                     <TableCell>
                       <TextField
                         label="E'es Tax"
@@ -255,21 +250,25 @@ export default function CreateNICTaxPage() {
                         onChange={(e) => handleEntryChange(index, 'eesTax', +e.target.value)}
                         variant="outlined"
                         size="small"
+                        inputProps={{ onWheel: (e) => e.target.blur() }}
                       />
                     </TableCell>
                     <TableCell>
                       <IconButton color="error" onClick={() => handleRemoveRow(index)}>
                         <Delete />
                       </IconButton>
-                      <IconButton color="primary" onClick={() => {
-                        // Insert new row below
-                        const newRow = createEmptyRow();
-                        setEntries((prev) => {
-                          const updated = [...prev];
-                          updated.splice(index + 1, 0, newRow);
-                          return updated;
-                        });
-                      }}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          // Insert new row below
+                          const newRow = createEmptyRow();
+                          setEntries((prev) => {
+                            const updated = [...prev];
+                            updated.splice(index + 1, 0, newRow);
+                            return updated;
+                          });
+                        }}
+                      >
                         <Add />
                       </IconButton>
                     </TableCell>
@@ -279,11 +278,7 @@ export default function CreateNICTaxPage() {
             </Table>
 
             <Box sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={handleAddRow}
-              >
+              <Button variant="outlined" startIcon={<Add />} onClick={handleAddRow}>
                 Add Row
               </Button>
             </Box>

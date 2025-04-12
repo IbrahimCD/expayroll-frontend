@@ -116,7 +116,12 @@ export default function EmployeeList() {
   };
 
   return (
-    <Container sx={{ mt: 4, fontFamily: `'Merriweather', serif` }}>
+    // Changed the Container to expand to extra large width and disable default gutters (side margins)
+    <Container
+      maxWidth="xl"          // <-- Using the maximum width breakpoint (xl)
+      disableGutters         // <-- Removes the default side padding
+      sx={{ mt: 4, fontFamily: `'Merriweather', serif`, px: { xs: 2, md: 4 } }} // Added custom horizontal padding if needed
+    >
       <Typography variant="h4" gutterBottom sx={{ color: '#5e4b33', fontWeight: 'bold' }}>
         Employee List
       </Typography>
@@ -205,12 +210,16 @@ export default function EmployeeList() {
       ) : error ? (
         <Typography color="error">{error}</Typography>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
+        // Updated TableContainer: spans 100% width with horizontal overflow if needed
+        <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+          {/* Set a minimum table width to prevent columns from being too squeezed */}
+          <Table sx={{ minWidth: 900 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold' }}>Avatar</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                {/* Insert new column header for Base Location */}
+                <TableCell sx={{ fontWeight: 'bold' }}>Base Location</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Payroll ID</TableCell>
@@ -244,6 +253,8 @@ export default function EmployeeList() {
                       </Avatar>
                     </TableCell>
                     <TableCell>{displayName}</TableCell>
+                    {/* Updated to show location name rather than the raw ObjectId */}
+                    <TableCell>{emp.baseLocationId?.name || 'N/A'}</TableCell>
                     <TableCell>{emp.email}</TableCell>
                     <TableCell>{emp.mobileNo || 'N/A'}</TableCell>
                     <TableCell>{emp.payrollId || 'N/A'}</TableCell>
@@ -309,7 +320,7 @@ export default function EmployeeList() {
               })}
               {employees.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <Typography sx={{ fontFamily: `'Merriweather', serif` }}>
                       No employees found.
                     </Typography>

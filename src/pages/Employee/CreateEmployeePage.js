@@ -47,7 +47,6 @@ export default function CreateEmployeePage() {
   // Pay Structure states
   const [payStructureName, setPayStructureName] = useState('');
   const [hasDailyRates, setHasDailyRates] = useState(false);
-  // Remove the old daily rates states and add new ones for daily rates modes:
 
   // For NI Daily Rates:
   const [niDayMode, setNiDayMode] = useState('NONE'); // Options: NONE / ALL / FIXED
@@ -97,7 +96,7 @@ export default function CreateEmployeePage() {
     fetchLocations();
   }, []);
 
-  // Handlers for dynamic additions/deductions (unchanged)
+  // Handlers for dynamic additions/deductions
   const addNiAddition = () => setNiAdditions([...niAdditions, { name: '', amount: 0 }]);
   const handleNiAddChange = (idx, field, val) => {
     const arr = [...niAdditions];
@@ -380,6 +379,7 @@ export default function CreateEmployeePage() {
                           value={niRegularDays}
                           onChange={(e) => setNiRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Regular Day Rate"
@@ -387,6 +387,7 @@ export default function CreateEmployeePage() {
                           value={niRegularDayRate}
                           onChange={(e) => setNiRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Extra Day Rate"
@@ -394,6 +395,7 @@ export default function CreateEmployeePage() {
                           value={niExtraDayRate}
                           onChange={(e) => setNiExtraDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Extra Shift Rate"
@@ -401,6 +403,7 @@ export default function CreateEmployeePage() {
                           value={niExtraShiftRate}
                           onChange={(e) => setNiExtraShiftRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -412,6 +415,7 @@ export default function CreateEmployeePage() {
                           value={niRegularDays}
                           onChange={(e) => setNiRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="NI Regular Day Rate"
@@ -419,6 +423,7 @@ export default function CreateEmployeePage() {
                           value={niRegularDayRate}
                           onChange={(e) => setNiRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -443,6 +448,7 @@ export default function CreateEmployeePage() {
                           value={cashRegularDays}
                           onChange={(e) => setCashRegularDays(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Regular Day Rate"
@@ -450,6 +456,7 @@ export default function CreateEmployeePage() {
                           value={cashRegularDayRate}
                           onChange={(e) => setCashRegularDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Extra Day Rate"
@@ -457,6 +464,7 @@ export default function CreateEmployeePage() {
                           value={cashExtraDayRate}
                           onChange={(e) => setCashExtraDayRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Cash Extra Shift Rate"
@@ -464,6 +472,7 @@ export default function CreateEmployeePage() {
                           value={cashExtraShiftRate}
                           onChange={(e) => setCashExtraShiftRate(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -501,6 +510,7 @@ export default function CreateEmployeePage() {
                           value={minNiHours}
                           onChange={(e) => setMinNiHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Max NI Hours"
@@ -509,6 +519,7 @@ export default function CreateEmployeePage() {
                           onChange={(e) => setMaxNiHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="% NI Hours"
@@ -517,6 +528,7 @@ export default function CreateEmployeePage() {
                           onChange={(e) => setPercentageNiHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -528,6 +540,7 @@ export default function CreateEmployeePage() {
                           value={fixedNiHours}
                           onChange={(e) => setFixedNiHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -538,6 +551,7 @@ export default function CreateEmployeePage() {
                       onChange={(e) => setNiRatePerHour(+e.target.value)}
                       margin="normal"
                       fullWidth
+                      inputProps={{ onWheel: (e) => e.target.blur() }}
                     />
                     <Typography variant="subtitle1" sx={{ mt: 2 }}>
                       Cash Hours Mode
@@ -560,6 +574,7 @@ export default function CreateEmployeePage() {
                           value={minCashHours}
                           onChange={(e) => setMinCashHours(+e.target.value)}
                           margin="normal"
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="Max Cash Hours"
@@ -568,6 +583,7 @@ export default function CreateEmployeePage() {
                           onChange={(e) => setMaxCashHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                         <TextField
                           label="% Cash Hours"
@@ -576,6 +592,7 @@ export default function CreateEmployeePage() {
                           onChange={(e) => setPercentageCashHours(+e.target.value)}
                           margin="normal"
                           sx={{ ml: 2 }}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     )}
@@ -586,6 +603,7 @@ export default function CreateEmployeePage() {
                       onChange={(e) => setCashRatePerHour(+e.target.value)}
                       margin="normal"
                       fullWidth
+                      inputProps={{ onWheel: (e) => e.target.blur() }}
                     />
                   </Box>
                 )}
@@ -623,6 +641,7 @@ export default function CreateEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleNiAddChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -644,6 +663,7 @@ export default function CreateEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleNiDeductionChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -665,6 +685,7 @@ export default function CreateEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleCashAddChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}
@@ -686,6 +707,7 @@ export default function CreateEmployeePage() {
                           type="number"
                           value={item.amount}
                           onChange={(e) => handleCashDeductionChange(idx, 'amount', +e.target.value)}
+                          inputProps={{ onWheel: (e) => e.target.blur() }}
                         />
                       </Box>
                     ))}

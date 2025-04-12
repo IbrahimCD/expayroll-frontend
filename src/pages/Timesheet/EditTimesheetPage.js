@@ -1,4 +1,4 @@
-// src/pages/Timesheet/EditTimesheetPage.jsx
+// frontend/src/pages/Timesheet/EditTimesheetPage.jsx
 import React, { useEffect, useState } from 'react';
 import {
   Container,
@@ -378,6 +378,7 @@ export default function EditTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'hoursWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -391,6 +392,7 @@ export default function EditTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'daysWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -404,6 +406,7 @@ export default function EditTimesheetPage() {
                                 onChange={(e) => handleEntryChange(index, 'extraShiftWorked', +e.target.value)}
                                 variant="outlined"
                                 size="small"
+                                inputProps={{ onWheel: (e) => e.target.blur() }}
                               />
                             ) : (
                               <TextField value="N/A" disabled variant="outlined" size="small" />
@@ -416,6 +419,7 @@ export default function EditTimesheetPage() {
                               onChange={(e) => handleEntryChange(index, 'otherCashAddition', +e.target.value)}
                               variant="outlined"
                               size="small"
+                              inputProps={{ onWheel: (e) => e.target.blur() }}
                             />
                           </TableCell>
                           <TableCell>
@@ -425,6 +429,7 @@ export default function EditTimesheetPage() {
                               onChange={(e) => handleEntryChange(index, 'otherCashDeduction', +e.target.value)}
                               variant="outlined"
                               size="small"
+                              inputProps={{ onWheel: (e) => e.target.blur() }}
                             />
                           </TableCell>
                           <TableCell>
