@@ -1,3 +1,4 @@
+// frontend/src/pages/Employee/EmployeeDetailsPage.jsx
 import React, { useEffect, useState } from 'react';
 import {
   Container,
@@ -144,6 +145,14 @@ export default function EmployeeDetailsPage() {
                   <strong>Employee ID:</strong> {employee._id}
                 </Typography>
               </Grid>
+
+              {/* Title (Optional field) */}
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body1">
+                  <strong>Title:</strong> {employee.title || 'N/A'}
+                </Typography>
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <Typography variant="body1">
                   <strong>First Name:</strong> {employee.firstName}
@@ -164,12 +173,32 @@ export default function EmployeeDetailsPage() {
                   <strong>Gender:</strong> {employee.gender}
                 </Typography>
               </Grid>
+
+              {/* Age (computed on the server) */}
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body1">
+                  <strong>Age:</strong> {employee.age || 'N/A'}
+                </Typography>
+              </Grid>
+
+              {/* Date of Birth */}
               <Grid item xs={12} sm={6}>
                 <Typography variant="body1">
                   <strong>Date of Birth:</strong>{' '}
                   {employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : 'N/A'}
                 </Typography>
               </Grid>
+
+              {/* Commencement Date (Optional) */}
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body1">
+                  <strong>Commencement Date:</strong>{' '}
+                  {employee.commencementDate
+                    ? new Date(employee.commencementDate).toLocaleDateString()
+                    : 'N/A'}
+                </Typography>
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <Typography variant="body1">
                   <strong>Mobile:</strong> {employee.mobileNo || 'N/A'}
@@ -200,6 +229,8 @@ export default function EmployeeDetailsPage() {
                   <strong>Base Location:</strong> {baseLocationName}
                 </Typography>
               </Grid>
+
+              {/* Description if it exists */}
               {employee.description && (
                 <Grid item xs={12}>
                   <Typography variant="body1">
@@ -255,18 +286,22 @@ export default function EmployeeDetailsPage() {
                   {payStructure.dailyRates.niRates && (
                     <Box sx={{ pl: 2, mt: 1 }}>
                       <Typography variant="body2">
-                        <strong>NI Regular Days:</strong> {payStructure.dailyRates.niRates.regularDays}
+                        <strong>NI Regular Days:</strong>{' '}
+                        {payStructure.dailyRates.niRates.regularDays}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>NI Regular Day Rate:</strong> {payStructure.dailyRates.niRates.regularDayRate}
+                        <strong>NI Regular Day Rate:</strong>{' '}
+                        {payStructure.dailyRates.niRates.regularDayRate}
                       </Typography>
                       {payStructure.dailyRates.niDayMode === 'ALL' && (
                         <>
                           <Typography variant="body2">
-                            <strong>NI Extra Day Rate:</strong> {payStructure.dailyRates.niRates.extraDayRate}
+                            <strong>NI Extra Day Rate:</strong>{' '}
+                            {payStructure.dailyRates.niRates.extraDayRate}
                           </Typography>
                           <Typography variant="body2">
-                            <strong>NI Extra Shift Rate:</strong> {payStructure.dailyRates.niRates.extraShiftRate}
+                            <strong>NI Extra Shift Rate:</strong>{' '}
+                            {payStructure.dailyRates.niRates.extraShiftRate}
                           </Typography>
                         </>
                       )}
@@ -279,18 +314,22 @@ export default function EmployeeDetailsPage() {
                   {payStructure.dailyRates.cashRates && (
                     <Box sx={{ pl: 2, mt: 1 }}>
                       <Typography variant="body2">
-                        <strong>Cash Regular Days:</strong> {payStructure.dailyRates.cashRates.regularDays}
+                        <strong>Cash Regular Days:</strong>{' '}
+                        {payStructure.dailyRates.cashRates.regularDays}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Cash Regular Day Rate:</strong> {payStructure.dailyRates.cashRates.regularDayRate}
+                        <strong>Cash Regular Day Rate:</strong>{' '}
+                        {payStructure.dailyRates.cashRates.regularDayRate}
                       </Typography>
                       {payStructure.dailyRates.cashDayMode === 'ALL' && (
                         <>
                           <Typography variant="body2">
-                            <strong>Cash Extra Day Rate:</strong> {payStructure.dailyRates.cashRates.extraDayRate}
+                            <strong>Cash Extra Day Rate:</strong>{' '}
+                            {payStructure.dailyRates.cashRates.extraDayRate}
                           </Typography>
                           <Typography variant="body2">
-                            <strong>Cash Extra Shift Rate:</strong> {payStructure.dailyRates.cashRates.extraShiftRate}
+                            <strong>Cash Extra Shift Rate:</strong>{' '}
+                            {payStructure.dailyRates.cashRates.extraShiftRate}
                           </Typography>
                         </>
                       )}
@@ -329,7 +368,8 @@ export default function EmployeeDetailsPage() {
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Typography variant="body2">
-                    <strong>Cash Hours Mode:</strong> {payStructure.hourlyRates.cashHoursMode || 'N/A'}
+                    <strong>Cash Hours Mode:</strong>{' '}
+                    {payStructure.hourlyRates.cashHoursMode || 'N/A'}
                   </Typography>
                   <Box sx={{ pl: 2, mt: 1 }}>
                     <Typography variant="body2">

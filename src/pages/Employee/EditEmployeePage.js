@@ -1,4 +1,5 @@
 // src/pages/Employee/EditEmployeePage.jsx
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
@@ -29,11 +30,13 @@ export default function EditEmployeePage() {
   const [message, setMessage] = useState('');
 
   // Basic Info
+  const [title, setTitle] = useState('');                  // NEW FIELD
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [preferredName, setPreferredName] = useState('');
   const [gender, setGender] = useState('Other');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [commencementDate, setCommencementDate] = useState(''); // NEW FIELD
   const [mobileNo, setMobileNo] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
@@ -108,11 +111,15 @@ export default function EditEmployeePage() {
         const emp = res.data.employee;
 
         // Basic info
+        setTitle(emp.title || '');                            // Set Title
         setFirstName(emp.firstName);
         setLastName(emp.lastName);
         setPreferredName(emp.preferredName || '');
         setGender(emp.gender || 'Other');
         setDateOfBirth(emp.dateOfBirth ? emp.dateOfBirth.split('T')[0] : '');
+        setCommencementDate(                                 // Set Commencement Date
+          emp.commencementDate ? emp.commencementDate.split('T')[0] : ''
+        );
         setMobileNo(emp.mobileNo || '');
         setEmail(emp.email || '');
         setAddress(emp.address || '');
@@ -125,27 +132,36 @@ export default function EditEmployeePage() {
         if (emp.payStructure) {
           setPayStructureName(emp.payStructure.payStructureName || '');
           setHasDailyRates(emp.payStructure.hasDailyRates || false);
+
+          // Daily Rates
           if (emp.payStructure.hasDailyRates && emp.payStructure.dailyRates) {
             const dr = emp.payStructure.dailyRates;
             setNiDayMode(dr.niDayMode || 'NONE');
+
             if (dr.niRates) {
+              // If the backend is returning nested niRates
               setNiRegularDays(dr.niRates.regularDays || 0);
               setNiRegularDayRate(dr.niRates.regularDayRate || 0);
               setNiExtraDayRate(dr.niRates.extraDayRate || 0);
               setNiExtraShiftRate(dr.niRates.extraShiftRate || 0);
             } else {
+              // If the backend is returning the flat ni_* fields
               setNiRegularDays(dr.ni_regularDays || 0);
               setNiRegularDayRate(dr.ni_regularDayRate || 0);
               setNiExtraDayRate(dr.ni_extraDayRate || 0);
               setNiExtraShiftRate(dr.ni_extraShiftRate || 0);
             }
+
             setCashDayMode(dr.cashDayMode || 'NONE');
+
             if (dr.cashRates) {
+              // If the backend is returning nested cashRates
               setCashRegularDays(dr.cashRates.regularDays || 0);
               setCashRegularDayRate(dr.cashRates.regularDayRate || 0);
               setCashExtraDayRate(dr.cashRates.extraDayRate || 0);
               setCashExtraShiftRate(dr.cashRates.extraShiftRate || 0);
             } else {
+              // If the backend is returning the flat cash_* fields
               setCashRegularDays(dr.cash_regularDays || 0);
               setCashRegularDayRate(dr.cash_regularDayRate || 0);
               setCashExtraDayRate(dr.cash_extraDayRate || 0);
@@ -153,6 +169,7 @@ export default function EditEmployeePage() {
             }
           }
 
+          // Hourly Rates
           setHasHourlyRates(emp.payStructure.hasHourlyRates || false);
           if (emp.payStructure.hasHourlyRates && emp.payStructure.hourlyRates) {
             const hr = emp.payStructure.hourlyRates;
@@ -170,14 +187,19 @@ export default function EditEmployeePage() {
             setCashRatePerHour(hr.cashRatePerHour || 0);
           }
 
+          // Other Considerations
           setHasOtherConsiderations(emp.payStructure.hasOtherConsiderations || false);
           if (emp.payStructure.hasOtherConsiderations && emp.payStructure.otherConsiderations) {
             const oc = emp.payStructure.otherConsiderations;
             setNote(oc.note || '');
             setNiAdditions(oc.niAdditions?.length ? oc.niAdditions : [{ name: '', amount: 0 }]);
             setNiDeductions(oc.niDeductions?.length ? oc.niDeductions : [{ name: '', amount: 0 }]);
-            setCashAdditions(oc.cashAdditions?.length ? oc.cashAdditions : [{ name: '', amount: 0 }]);
-            setCashDeductions(oc.cashDeductions?.length ? oc.cashDeductions : [{ name: '', amount: 0 }]);
+            setCashAdditions(
+              oc.cashAdditions?.length ? oc.cashAdditions : [{ name: '', amount: 0 }]
+            );
+            setCashDeductions(
+              oc.cashDeductions?.length ? oc.cashDeductions : [{ name: '', amount: 0 }]
+            );
           }
         }
       } catch (err) {
@@ -196,18 +218,21 @@ export default function EditEmployeePage() {
     arr[idx][field] = val;
     setNiAdditions(arr);
   };
+
   const addNiDeduction = () => setNiDeductions([...niDeductions, { name: '', amount: 0 }]);
   const handleNiDeductionChange = (idx, field, val) => {
     const arr = [...niDeductions];
     arr[idx][field] = val;
     setNiDeductions(arr);
   };
+
   const addCashAddition = () => setCashAdditions([...cashAdditions, { name: '', amount: 0 }]);
   const handleCashAddChange = (idx, field, val) => {
     const arr = [...cashAdditions];
     arr[idx][field] = val;
     setCashAdditions(arr);
   };
+
   const addCashDeduction = () => setCashDeductions([...cashDeductions, { name: '', amount: 0 }]);
   const handleCashDeductionChange = (idx, field, val) => {
     const arr = [...cashDeductions];
@@ -267,11 +292,13 @@ export default function EditEmployeePage() {
     };
 
     const payload = {
+      title,                                      // NEW FIELD
       firstName,
       lastName,
       preferredName,
       gender,
       dateOfBirth: dateOfBirth || null,
+      commencementDate: commencementDate || null, // NEW FIELD
       mobileNo,
       email,
       address,
@@ -306,7 +333,24 @@ export default function EditEmployeePage() {
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
-              {/* Basic Info */}
+              {/* Title (Optional) */}
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Title</InputLabel>
+                <Select
+                  label="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value="Mr">Mr</MenuItem>
+                  <MenuItem value="Ms">Ms</MenuItem>
+                  <MenuItem value="Mrs">Mrs</MenuItem>
+                  <MenuItem value="Miss">Miss</MenuItem>
+                </Select>
+              </FormControl>
+
               <TextField
                 label="First Name"
                 value={firstName}
@@ -338,6 +382,7 @@ export default function EditEmployeePage() {
                   <MenuItem value="Other">Other</MenuItem>
                 </Select>
               </FormControl>
+
               <TextField
                 label="Date of Birth"
                 type="date"
@@ -347,6 +392,18 @@ export default function EditEmployeePage() {
                 margin="normal"
                 InputLabelProps={{ shrink: true }}
               />
+
+              {/* Commencement Date (Optional) */}
+              <TextField
+                label="Commencement Date"
+                type="date"
+                value={commencementDate}
+                onChange={(e) => setCommencementDate(e.target.value)}
+                fullWidth
+                margin="normal"
+                InputLabelProps={{ shrink: true }}
+              />
+
               <TextField
                 label="Mobile No"
                 value={mobileNo}
