@@ -23,7 +23,7 @@ import {
   Paper,
   Tooltip
 } from '@mui/material';
-import { Edit } from '@mui/icons-material';
+import { Edit, Cake as CakeIcon } from '@mui/icons-material';
 import AlarmIcon from '@mui/icons-material/Alarm';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -116,17 +116,16 @@ export default function EmployeeList() {
   };
 
   return (
-    // Changed the Container to expand to extra large width and disable default gutters (side margins)
     <Container
-      maxWidth="xl"          // <-- Using the maximum width breakpoint (xl)
-      disableGutters         // <-- Removes the default side padding
-      sx={{ mt: 4, fontFamily: `'Merriweather', serif`, px: { xs: 2, md: 4 } }} // Added custom horizontal padding if needed
+      maxWidth="xl"
+      disableGutters
+      sx={{ mt: 4, fontFamily: `'Merriweather', serif`, px: { xs: 2, md: 4 } }}
     >
       <Typography variant="h4" gutterBottom sx={{ color: '#5e4b33', fontWeight: 'bold' }}>
         Employee List
       </Typography>
 
-      {/* Top controls: Filters & action buttons */}
+      {/* Top controls */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
@@ -173,7 +172,6 @@ export default function EmployeeList() {
           >
             Add Employee
           </Button>
-          {/* New Batch Create Button */}
           <Button
             variant="contained"
             onClick={() => navigate('/employees/batch')}
@@ -210,15 +208,13 @@ export default function EmployeeList() {
       ) : error ? (
         <Typography color="error">{error}</Typography>
       ) : (
-        // Updated TableContainer: spans 100% width with horizontal overflow if needed
         <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
-          {/* Set a minimum table width to prevent columns from being too squeezed */}
           <Table sx={{ minWidth: 900 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold' }}>Avatar</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                {/* Insert new column header for Base Location */}
+                <TableCell sx={{ fontWeight: 'bold' }}>Age</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Base Location</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
@@ -252,14 +248,26 @@ export default function EmployeeList() {
                         {displayName.charAt(0)}
                       </Avatar>
                     </TableCell>
+
                     <TableCell>{displayName}</TableCell>
-                    {/* Updated to show location name rather than the raw ObjectId */}
+
+                    {/* Age + Birthday icon */}
+                    <TableCell>
+                      {emp.age != null ? emp.age : 'N/A'}
+                      {emp.isBirthday && (
+                        <CakeIcon fontSize="small" sx={{ ml: 0.5, color: '#ffc107' }} />
+                      )}
+                    </TableCell>
+
                     <TableCell>{emp.baseLocationId?.name || 'N/A'}</TableCell>
                     <TableCell>{emp.email}</TableCell>
                     <TableCell>{emp.mobileNo || 'N/A'}</TableCell>
                     <TableCell>{emp.payrollId || 'N/A'}</TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ color: getStatusColor(emp.status), fontWeight: 'bold' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: getStatusColor(emp.status), fontWeight: 'bold' }}
+                      >
                         {emp.status}
                       </Typography>
                     </TableCell>
@@ -290,10 +298,7 @@ export default function EmployeeList() {
                       )}
                     </TableCell>
                     <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      <IconButton
-                        onClick={(e) => handleEdit(emp._id, e)}
-                        sx={{ color: '#5e4b33' }}
-                      >
+                      <IconButton onClick={(e) => handleEdit(emp._id, e)} sx={{ color: '#5e4b33' }}>
                         <Edit />
                       </IconButton>
                       <Tooltip title="Add Reminder">
@@ -320,7 +325,7 @@ export default function EmployeeList() {
               })}
               {employees.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9}>
+                  <TableCell colSpan={10}>
                     <Typography sx={{ fontFamily: `'Merriweather', serif` }}>
                       No employees found.
                     </Typography>

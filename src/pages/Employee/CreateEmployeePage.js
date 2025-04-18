@@ -39,6 +39,10 @@ export default function CreateEmployeePage() {
   const [payrollId, setPayrollId] = useState('');
   const [status, setStatus] = useState('Employed');
 
+  // NEW optional fields:
+  const [title, setTitle] = useState(''); // Ms, Mr, etc.
+  const [commencementDate, setCommencementDate] = useState('');
+
   // Base Location & Location Access
   const [baseLocationId, setBaseLocationId] = useState('');
   const [locationAccess, setLocationAccess] = useState([]);
@@ -48,20 +52,21 @@ export default function CreateEmployeePage() {
   const [payStructureName, setPayStructureName] = useState('');
   const [hasDailyRates, setHasDailyRates] = useState(false);
 
-  // For NI Daily Rates:
-  const [niDayMode, setNiDayMode] = useState('NONE'); // Options: NONE / ALL / FIXED
+  // NI daily rates
+  const [niDayMode, setNiDayMode] = useState('NONE');
   const [niRegularDays, setNiRegularDays] = useState(0);
   const [niRegularDayRate, setNiRegularDayRate] = useState(0);
   const [niExtraDayRate, setNiExtraDayRate] = useState(0);
   const [niExtraShiftRate, setNiExtraShiftRate] = useState(0);
 
-  // For Cash Daily Rates:
-  const [cashDayMode, setCashDayMode] = useState('NONE'); // Options: NONE / ALL
+  // Cash daily rates
+  const [cashDayMode, setCashDayMode] = useState('NONE');
   const [cashRegularDays, setCashRegularDays] = useState(0);
   const [cashRegularDayRate, setCashRegularDayRate] = useState(0);
   const [cashExtraDayRate, setCashExtraDayRate] = useState(0);
   const [cashExtraShiftRate, setCashExtraShiftRate] = useState(0);
 
+  // Hourly
   const [hasHourlyRates, setHasHourlyRates] = useState(false);
   const [niHoursMode, setNiHoursMode] = useState('NONE');
   const [minNiHours, setMinNiHours] = useState(0);
@@ -76,6 +81,7 @@ export default function CreateEmployeePage() {
   const [percentageCashHours, setPercentageCashHours] = useState(0);
   const [cashRatePerHour, setCashRatePerHour] = useState(0);
 
+  // Other Considerations
   const [hasOtherConsiderations, setHasOtherConsiderations] = useState(false);
   const [note, setNote] = useState('');
   const [niAdditions, setNiAdditions] = useState([{ name: '', amount: 0 }]);
@@ -83,7 +89,6 @@ export default function CreateEmployeePage() {
   const [cashAdditions, setCashAdditions] = useState([{ name: '', amount: 0 }]);
   const [cashDeductions, setCashDeductions] = useState([{ name: '', amount: 0 }]);
 
-  // Fetch locations on mount
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -96,7 +101,7 @@ export default function CreateEmployeePage() {
     fetchLocations();
   }, []);
 
-  // Handlers for dynamic additions/deductions
+  // Dynamic additions/deductions
   const addNiAddition = () => setNiAdditions([...niAdditions, { name: '', amount: 0 }]);
   const handleNiAddChange = (idx, field, val) => {
     const arr = [...niAdditions];
@@ -129,7 +134,21 @@ export default function CreateEmployeePage() {
     e.preventDefault();
     setMessage('');
 
-    // Build the new dailyRates object with the updated fields
+    // Basic validations from before (in case you have them)
+    if (hasDailyRates && hasHourlyRates) {
+      setMessage('Error: You cannot have both daily rates and hourly rates enabled.');
+      return;
+    }
+    if (niDayMode === 'ALL' && cashDayMode === 'ALL') {
+      setMessage('Error: niDayMode=ALL and cashDayMode=ALL is not allowed.');
+      return;
+    }
+    if ((niHoursMode === 'ALL' || niHoursMode === 'CUSTOM') && cashHoursMode === 'ALL') {
+      setMessage('Error: niHoursMode=(ALL or CUSTOM) and cashHoursMode=ALL is not allowed.');
+      return;
+    }
+
+    // Build dailyRates object
     const dailyRates = {
       niDayMode,
       ni_regularDays: niRegularDays,
@@ -162,10 +181,18 @@ export default function CreateEmployeePage() {
         cashRatePerHour,
       },
       hasOtherConsiderations,
-      otherConsiderations: { note, niAdditions, niDeductions, cashAdditions, cashDeductions },
+      otherConsiderations: {
+        note,
+        niAdditions,
+        niDeductions,
+        cashAdditions,
+        cashDeductions,
+      },
     };
 
+    // Build the overall payload
     const payload = {
+      // Basic info
       firstName,
       lastName,
       preferredName,
@@ -176,15 +203,23 @@ export default function CreateEmployeePage() {
       address,
       payrollId,
       status,
+
+      // NEW optional fields:
+      title, // Ms, Mr, etc. If user left blank, it's just ""
+      commencementDate: commencementDate || null,
+
+      // Locations
       baseLocationId,
-      locationAccess, // Multi-select field for additional location access
+      locationAccess,
+
+      // Pay structure
       payStructure,
     };
 
     try {
       const res = await api.post('/employees', payload);
       setMessage(res.data.message);
-      navigate('/employees'); // Navigate to employee list after creation
+      navigate('/employees');
     } catch (err) {
       console.error('Create Employee error:', err);
       setMessage(err.response?.data?.message || 'Failed to create employee.');
@@ -204,6 +239,35 @@ export default function CreateEmployeePage() {
                 Basic Info
               </Typography>
               <Divider sx={{ mb: 2 }} />
+
+              {/* Title (Optional) */}
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Title</InputLabel>
+                <Select
+                  label="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                >
+                  <MenuItem value="">(None)</MenuItem>
+                  <MenuItem value="Mr">Mr</MenuItem>
+                  <MenuItem value="Mrs">Mrs</MenuItem>
+                  <MenuItem value="Ms">Ms</MenuItem>
+                  <MenuItem value="Miss">Miss</MenuItem>
+                  <MenuItem value="Dr">Dr</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Commencement Date (Optional) */}
+              <TextField
+                label="Commencement Date"
+                type="date"
+                value={commencementDate}
+                onChange={(e) => setCommencementDate(e.target.value)}
+                fullWidth
+                margin="normal"
+                InputLabelProps={{ shrink: true }}
+              />
 
               <TextField
                 label="First Name"
@@ -724,7 +788,10 @@ export default function CreateEmployeePage() {
                   type="submit"
                   sx={{
                     transition: 'transform 0.3s, box-shadow 0.3s',
-                    '&:hover': { transform: 'scale(1.05)', boxShadow: '0px 8px 20px rgba(0,0,0,0.3)' }
+                    '&:hover': {
+                      transform: 'scale(1.05)',
+                      boxShadow: '0px 8px 20px rgba(0,0,0,0.3)'
+                    }
                   }}
                 >
                   Save Employee
@@ -732,7 +799,7 @@ export default function CreateEmployeePage() {
               </Box>
             </form>
             {message && (
-              <Typography sx={{ mt: 2, color: 'green' }}>
+              <Typography sx={{ mt: 2, color: 'red', fontWeight: 'bold' }}>
                 {message}
               </Typography>
             )}
