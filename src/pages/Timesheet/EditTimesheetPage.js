@@ -195,14 +195,20 @@ export default function EditTimesheetPage() {
     const emp = filteredEmployees.find((e) => e._id === selectedEmployeeId);
     if (!emp) return;
 
-    let fetchedBaseLocation = '';
-    // If employee has a baseLocationId, fetch the location name
+    // Get base location name from populated data
+    let baseLocationName = '';
     if (emp.baseLocationId) {
-      try {
-        const res = await api.get(`/locations/${emp.baseLocationId}`);
-        fetchedBaseLocation = res.data?.name || '';
-      } catch (error) {
-        console.error('Error fetching base location:', error);
+      // If baseLocationId is populated (object), use the name directly
+      if (typeof emp.baseLocationId === 'object' && emp.baseLocationId.name) {
+        baseLocationName = emp.baseLocationId.name;
+      } else {
+        // If it's just an ID, fetch the location name
+        try {
+          const res = await api.get(`/locations/${emp.baseLocationId}`);
+          baseLocationName = res.data?.name || '';
+        } catch (error) {
+          console.error('Error fetching base location:', error);
+        }
       }
     }
 
@@ -217,7 +223,7 @@ export default function EditTimesheetPage() {
             employeeId: selectedEmployeeId,
             employeeName: `${emp.firstName} ${emp.lastName}`, // Added employeeName field
             payrollId: emp.payrollId || '',
-            baseLocation: fetchedBaseLocation,
+            baseLocation: baseLocationName,
             hasDailyRates,
             hasHourlyRates
           };

@@ -161,25 +161,22 @@ export default function CreateTimesheetPage() {
     const emp = filteredEmployees.find((e) => e._id === selectedEmployeeId);
     if (!emp) return;
 
-    // Fetch base location from backend if needed
-    
-   
-      try {
-        
-      } catch (error) {
-        console.error('Error fetching base location:', error);
+    // Get base location name from populated data
+    let baseLocationName = '';
+    if (emp.baseLocationId) {
+      // If baseLocationId is populated (object), use the name directly
+      if (typeof emp.baseLocationId === 'object' && emp.baseLocationId.name) {
+        baseLocationName = emp.baseLocationId.name;
+      } else {
+        // If it's just an ID, fetch the location name
+        try {
+          const res = await api.get(`/locations/${emp.baseLocationId}`);
+          baseLocationName = res.data?.name || '';
+        } catch (error) {
+          console.error('Error fetching base location:', error);
+        }
       }
-          // 2) Normalize baseLocationId to a string, in case it's an object
-          let baseLocId = emp.baseLocationId;
-          if (typeof baseLocId === 'object' && baseLocId._id) {
-            baseLocId = baseLocId._id;
-          }
-      
-          let fetchedBaseLocation = '';
-          if (baseLocId) {
-            const res = await api.get(`/locations/${baseLocId}`);
-            fetchedBaseLocation = res.data?.name || '';
-          }
+    }
 
     // Determine pay structure flags from employee.payStructure
     const hasDailyRates = emp.payStructure?.hasDailyRates || false;
@@ -192,7 +189,7 @@ export default function CreateTimesheetPage() {
             ...entry,
             employeeId: selectedEmployeeId,
             payrollId: emp.payrollId || '',
-            baseLocation: fetchedBaseLocation,
+            baseLocation: baseLocationName,
             hasDailyRates,
             hasHourlyRates
           };
