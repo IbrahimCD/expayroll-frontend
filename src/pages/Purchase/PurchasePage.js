@@ -26,7 +26,14 @@ import {
   Chip,
   CircularProgress,
   LinearProgress,
-  Pagination
+  Pagination,
+  Menu,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Divider
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -37,6 +44,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import api from '../../services/api';
 import Papa from 'papaparse';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -97,6 +106,23 @@ export default function PurchasePage() {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
   const [bulkResults, setBulkResults] = useState(null);
+
+  // Bulk Update state
+  const [bulkUpdateCsvFile, setBulkUpdateCsvFile] = useState(null);
+  const [bulkUpdateCsvText, setBulkUpdateCsvText] = useState('');
+  const [bulkUpdateParsedData, setBulkUpdateParsedData] = useState([]);
+  const [bulkUpdateParsing, setBulkUpdateParsing] = useState(false);
+  const [bulkUpdateUploading, setBulkUpdateUploading] = useState(false);
+  const [bulkUpdateMessage, setBulkUpdateMessage] = useState('');
+  const [bulkUpdateResults, setBulkUpdateResults] = useState(null);
+
+  // Download menu state
+  const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
+  const [downloadInvoiceId, setDownloadInvoiceId] = useState(null);
+
+  // Success dialog state
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [lastCreatedInvoiceId, setLastCreatedInvoiceId] = useState(null);
 
   // Helper: Format number to 2 decimals
   const fmt = (n) => (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -449,20 +475,12 @@ export default function PurchasePage() {
         locationId,
         items
       });
-      // Download CSV
+      
       const invoiceId = res.data.invoice._id;
-      const csvRes = await api.get(`/purchases/invoices/${invoiceId}/csv`, { responseType: 'blob' });
-      const blob = new Blob([csvRes.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${formDate} - ${suppliers.find(s => s._id === selectedSupplier)?.name || 'invoice'}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      alert('Invoice saved. You can also find it under the Invoices tab.');
+      setLastCreatedInvoiceId(invoiceId);
+      setShowSuccessDialog(true);
       handleResetForm();
       fetchInvoices();
-      setTab(4); // Switch to Invoices tab
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating invoice');
     }
@@ -501,6 +519,137 @@ export default function PurchasePage() {
   // View invoice - navigate to details page
   const handleViewInvoice = (invoiceId) => {
     navigate(`/purchases/${locationId}/invoice/${invoiceId}`);
+  };
+
+  // Handle download menu open
+  const handleDownloadMenuOpen = (event, invoiceId) => {
+    setDownloadAnchorEl(event.currentTarget);
+    setDownloadInvoiceId(invoiceId);
+  };
+
+  // Handle download menu close
+  const handleDownloadMenuClose = () => {
+    setDownloadAnchorEl(null);
+    setDownloadInvoiceId(null);
+  };
+
+  // Handle Excel download
+  const handleDownloadExcel = async () => {
+    if (!downloadInvoiceId) return;
+    
+    try {
+      const res = await api.get(`/purchases/invoices/${downloadInvoiceId}/csv`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const invoice = invoices.find(inv => inv._id === downloadInvoiceId);
+      const dateStr = new Date(invoice.date).toISOString().split('T')[0];
+      a.download = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error downloading Excel file');
+    }
+    
+    handleDownloadMenuClose();
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    if (!downloadInvoiceId) return;
+    
+    try {
+      const res = await api.get(`/purchases/invoices/${downloadInvoiceId}/details`);
+      const { invoice } = res.data;
+      
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      let yPos = 40;
+      
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('INVOICE', margin, yPos);
+      yPos += 30;
+      
+      // Invoice details
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const dateStr = new Date(invoice.date).toLocaleDateString();
+      doc.text(`Date: ${dateStr}`, margin, yPos);
+      yPos += 20;
+      doc.text(`Supplier: ${invoice.supplierId?.name || 'Unknown'}`, margin, yPos);
+      yPos += 20;
+      const locationText = invoice.locationId?.code 
+        ? `${invoice.locationId.name} (${invoice.locationId.code})`
+        : invoice.locationId?.name || 'Unknown';
+      doc.text(`Location: ${locationText}`, margin, yPos);
+      yPos += 30;
+      
+      // Items table
+      const tableData = invoice.items.map(item => [
+        item.name,
+        item.qty.toString(),
+        item.unitPrice.toFixed(2),
+        item.amount.toFixed(2),
+        item.defaultPrice.toFixed(2),
+        item.variance.toFixed(2)
+      ]);
+      
+      doc.autoTable({
+        head: [['Product', 'Qty', 'Unit Price', 'Amount', 'Default Price', 'Variance']],
+        body: tableData,
+        startY: yPos,
+        margin: { left: margin, right: margin },
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [66, 139, 202],
+          fontSize: 11,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { fontSize: 10 },
+        columnStyles: {
+          0: { cellWidth: 160 },
+          1: { halign: 'center', cellWidth: 50 },
+          2: { halign: 'right', cellWidth: 70 },
+          3: { halign: 'right', cellWidth: 70 },
+          4: { halign: 'right', cellWidth: 80 },
+          5: { halign: 'right', cellWidth: 70 }
+        }
+      });
+      
+      // Total
+      yPos = doc.lastAutoTable.finalY + 20;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      const totalText = `Total: ${invoice.total.toFixed(2)}`;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text(totalText, pageWidth - margin - 100, yPos);
+      
+      // Save
+      const fileName = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Error downloading PDF');
+    }
+    
+    handleDownloadMenuClose();
+  };
+
+  // Handle success dialog actions
+  const handleViewInvoiceFromDialog = () => {
+    setShowSuccessDialog(false);
+    if (lastCreatedInvoiceId) {
+      navigate(`/purchases/${locationId}/invoice/${lastCreatedInvoiceId}`);
+    }
+  };
+
+  const handleStayHere = () => {
+    setShowSuccessDialog(false);
+    setLastCreatedInvoiceId(null);
   };
 
   // Bulk Upload handlers
@@ -669,6 +818,203 @@ export default function PurchasePage() {
     window.URL.revokeObjectURL(url);
   };
 
+  // Bulk Update handlers
+  const handleBulkUpdateFileChange = (e) => {
+    setBulkUpdateCsvFile(e.target.files[0] || null);
+    setBulkUpdateCsvText('');
+    setBulkUpdateParsedData([]);
+    setBulkUpdateMessage('');
+    setBulkUpdateResults(null);
+  };
+
+  const handleUploadBulkUpdateCSV = () => {
+    if (!bulkUpdateCsvFile) {
+      setBulkUpdateMessage('Please select a CSV file.');
+      return;
+    }
+    setBulkUpdateParsing(true);
+    setBulkUpdateMessage('Parsing CSV...');
+
+    Papa.parse(bulkUpdateCsvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        setBulkUpdateParsedData(result.data);
+        setBulkUpdateParsing(false);
+        setBulkUpdateMessage(`Parsed ${result.data.length} rows. Review and submit.`);
+      },
+      error: (err) => {
+        setBulkUpdateParsing(false);
+        setBulkUpdateMessage(`Error parsing CSV: ${err.message}`);
+      }
+    });
+  };
+
+  const handlePasteBulkUpdateCSV = () => {
+    if (!bulkUpdateCsvText.trim()) {
+      setBulkUpdateMessage('Please paste CSV data.');
+      return;
+    }
+    setBulkUpdateParsing(true);
+    setBulkUpdateMessage('Parsing CSV...');
+
+    Papa.parse(bulkUpdateCsvText, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        setBulkUpdateParsedData(result.data);
+        setBulkUpdateParsing(false);
+        setBulkUpdateMessage(`Parsed ${result.data.length} rows. Review and submit.`);
+      },
+      error: (err) => {
+        setBulkUpdateParsing(false);
+        setBulkUpdateMessage(`Error parsing CSV: ${err.message}`);
+      }
+    });
+  };
+
+  const handleSubmitBulkUpdate = async () => {
+    if (bulkUpdateParsedData.length === 0) {
+      setBulkUpdateMessage('No data to update.');
+      return;
+    }
+
+    if (bulkUpdateParsedData.length > 1000) {
+      setBulkUpdateMessage('Too many rows. Maximum 1000 rows allowed per update.');
+      return;
+    }
+
+    setBulkUpdateUploading(true);
+    setBulkUpdateMessage('Updating products...');
+    setBulkUpdateResults(null);
+
+    try {
+      const res = await api.post('/purchases/products/bulk-update', {
+        locationId,
+        products: bulkUpdateParsedData.map(row => ({
+          productId: row['Product ID'] || row.productId || row.id,
+          supplier: row.Supplier || row.supplier,
+          name: row['Product Name'] || row.name,
+          defaultUnitPrice: row['Default Unit Price'] || row.defaultUnitPrice || 0,
+          rebateAmount: row['Rebate Amount'] || row.rebateAmount || 0
+        }))
+      });
+
+      setBulkUpdateResults(res.data);
+      
+      if (res.data.updated > 0) {
+        // Refresh data
+        setSupplierPage(1);
+        setProductPage(1);
+        fetchAllSuppliers();
+        fetchSuppliers();
+        fetchProducts();
+      }
+
+      setBulkUpdateMessage(`Bulk update completed! Updated: ${res.data.updated}, Failed: ${res.data.failed}`);
+    } catch (err) {
+      console.error('Error in bulk update:', err);
+      setBulkUpdateMessage(err.response?.data?.message || 'Error updating products.');
+    } finally {
+      setBulkUpdateUploading(false);
+    }
+  };
+
+  const handleClearBulkUpdateData = () => {
+    if (bulkUpdateParsedData.length > 0 || bulkUpdateResults) {
+      if (!window.confirm('Clear all bulk update data?')) return;
+    }
+    setBulkUpdateCsvFile(null);
+    setBulkUpdateCsvText('');
+    setBulkUpdateParsedData([]);
+    setBulkUpdateMessage('');
+    setBulkUpdateResults(null);
+  };
+
+  const handleDownloadBulkUpdateTemplate = async () => {
+    try {
+      // Fetch all products for the location
+      const res = await api.get(`/purchases/products/${locationId}`, {
+        params: { page: 1, limit: 10000 } // Get all products
+      });
+      
+      const allProducts = res.data.data || [];
+      
+      if (allProducts.length === 0) {
+        alert('No products found to generate template.');
+        return;
+      }
+
+      const escapeCSV = (value) => {
+        const str = String(value || '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const rows = [
+        ['Product ID', 'Supplier', 'Product Name', 'Default Unit Price', 'Rebate Amount'],
+        ...allProducts.map(p => [
+          escapeCSV(p._id),
+          escapeCSV(p.supplierId?.name || ''),
+          escapeCSV(p.name),
+          escapeCSV(p.defaultUnitPrice),
+          escapeCSV(p.rebateAmount)
+        ])
+      ];
+
+      const csv = rows.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `products-bulk-update-template.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading template:', err);
+      alert('Error generating template. Please try again.');
+    }
+  };
+
+  const handleDownloadBulkUpdateFailedCSV = () => {
+    if (!bulkUpdateResults || !bulkUpdateResults.failedUpdates || bulkUpdateResults.failedUpdates.length === 0) {
+      alert('No failed updates to download.');
+      return;
+    }
+
+    const escapeCSV = (value) => {
+      const str = String(value || '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = [
+      ['Row', 'Product ID', 'Supplier', 'Product Name', 'Default Unit Price', 'Rebate Amount', 'Error'],
+      ...bulkUpdateResults.failedUpdates.map(p => [
+        escapeCSV(p.row),
+        escapeCSV(p.productId),
+        escapeCSV(p.supplier),
+        escapeCSV(p.name),
+        escapeCSV(p.defaultUnitPrice),
+        escapeCSV(p.rebateAmount),
+        escapeCSV(p.error)
+      ])
+    ];
+
+    const csv = rows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products-bulk-update-failed-rows.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return <Container><Typography>Loading...</Typography></Container>;
   }
@@ -691,6 +1037,7 @@ export default function PurchasePage() {
             <Tab label="Suppliers" />
             <Tab label="Products" />
             <Tab label="Bulk Upload" />
+            <Tab label="Bulk Update" />
             <Tab label="Invoices" />
           </Tabs>
 
@@ -1251,8 +1598,225 @@ export default function PurchasePage() {
             )}
           </TabPanel>
 
-          {/* Invoices Tab */}
+          {/* Bulk Update Tab */}
           <TabPanel value={tab} index={4}>
+            {/* Section A: Instructions & Download Template */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Bulk Update Products</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Download the prefilled template with all existing products, modify the data, and upload to update products in bulk.
+              </Typography>
+              
+              <Typography variant="subtitle2" gutterBottom>CSV Format:</Typography>
+              <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', fontFamily: 'monospace', fontSize: '0.85rem', mb: 2 }}>
+                Product ID,Supplier,Product Name,Default Unit Price,Rebate Amount<br />
+                64f8a3b2c1d2e3f4a5b6c7d8,ABC Supplier,Product 1,10.50,1.00<br />
+                64f8a3b2c1d2e3f4a5b6c7d9,XYZ Supplier,Product 2,25.00,2.50
+              </Paper>
+
+              <Button 
+                variant="contained" 
+                startIcon={<DownloadIcon />}
+                onClick={handleDownloadBulkUpdateTemplate}
+                sx={{ mb: 2 }}
+              >
+                Download Template (Prefilled)
+              </Button>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Section B: Upload or Paste */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Upload Modified CSV</Typography>
+              
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>Option 1: Upload File</Typography>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleBulkUpdateFileChange}
+                      style={{ display: 'none' }}
+                      id="bulk-update-csv-file"
+                    />
+                    <label htmlFor="bulk-update-csv-file">
+                      <Button variant="outlined" component="span" startIcon={<CloudUploadIcon />}>
+                        Choose File
+                      </Button>
+                    </label>
+                    {bulkUpdateCsvFile && (
+                      <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                        Selected: {bulkUpdateCsvFile.name}
+                      </Typography>
+                    )}
+                    <Button 
+                      variant="contained" 
+                      sx={{ mt: 2 }} 
+                      onClick={handleUploadBulkUpdateCSV}
+                      disabled={!bulkUpdateCsvFile || bulkUpdateParsing}
+                    >
+                      Parse CSV
+                    </Button>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>Option 2: Paste CSV Data</Typography>
+                    <TextField
+                      multiline
+                      rows={4}
+                      fullWidth
+                      placeholder="Paste CSV content here..."
+                      value={bulkUpdateCsvText}
+                      onChange={(e) => setBulkUpdateCsvText(e.target.value)}
+                      variant="outlined"
+                    />
+                    <Button 
+                      variant="contained" 
+                      sx={{ mt: 2 }} 
+                      onClick={handlePasteBulkUpdateCSV}
+                      disabled={!bulkUpdateCsvText.trim() || bulkUpdateParsing}
+                    >
+                      Parse CSV
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Progress */}
+            {bulkUpdateParsing && <LinearProgress sx={{ mb: 2 }} />}
+            {bulkUpdateUploading && <LinearProgress sx={{ mb: 2 }} />}
+
+            {/* Message */}
+            {bulkUpdateMessage && (
+              <Alert severity={bulkUpdateResults ? (bulkUpdateResults.failed > 0 ? 'warning' : 'success') : 'info'} sx={{ mb: 2 }}>
+                {bulkUpdateMessage}
+              </Alert>
+            )}
+
+            {/* Section C: Preview Data */}
+            {bulkUpdateParsedData.length > 0 && !bulkUpdateResults && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>Preview Data ({bulkUpdateParsedData.length} rows)</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                  Showing first 50 rows. All rows will be processed on submit.
+                </Typography>
+                
+                <TableContainer component={Paper} sx={{ maxHeight: 400, mb: 2 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Product ID</TableCell>
+                        <TableCell>Supplier</TableCell>
+                        <TableCell>Product Name</TableCell>
+                        <TableCell>Default Unit Price</TableCell>
+                        <TableCell>Rebate Amount</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {bulkUpdateParsedData.slice(0, 50).map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{row['Product ID'] || row.productId || row.id}</TableCell>
+                          <TableCell>{row.Supplier || row.supplier}</TableCell>
+                          <TableCell>{row['Product Name'] || row.name}</TableCell>
+                          <TableCell>{row['Default Unit Price'] || row.defaultUnitPrice || 0}</TableCell>
+                          <TableCell>{row['Rebate Amount'] || row.rebateAmount || 0}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button variant="outlined" onClick={handleClearBulkUpdateData}>
+                    Clear
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    onClick={handleSubmitBulkUpdate}
+                    disabled={bulkUpdateUploading}
+                  >
+                    {bulkUpdateUploading ? <CircularProgress size={24} /> : 'Submit Bulk Update'}
+                  </Button>
+                </Box>
+              </Box>
+            )}
+
+            {/* Section D: Results */}
+            {bulkUpdateResults && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>Update Results</Typography>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <Chip 
+                    label={`Updated: ${bulkUpdateResults.updated}`} 
+                    color="success" 
+                    variant="outlined"
+                  />
+                  <Chip 
+                    label={`Failed: ${bulkUpdateResults.failed}`} 
+                    color={bulkUpdateResults.failed > 0 ? 'error' : 'default'} 
+                    variant="outlined"
+                  />
+                </Box>
+
+                {bulkUpdateResults.failedUpdates && bulkUpdateResults.failedUpdates.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" gutterBottom color="error">
+                      Failed Updates ({bulkUpdateResults.failedUpdates.length}):
+                    </Typography>
+                    <TableContainer component={Paper} sx={{ maxHeight: 400, mb: 2 }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Row</TableCell>
+                            <TableCell>Product ID</TableCell>
+                            <TableCell>Supplier</TableCell>
+                            <TableCell>Product Name</TableCell>
+                            <TableCell>Error</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {bulkUpdateResults.failedUpdates.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell>{item.row}</TableCell>
+                              <TableCell>{item.productId}</TableCell>
+                              <TableCell>{item.supplier}</TableCell>
+                              <TableCell>{item.name}</TableCell>
+                              <TableCell>
+                                <Typography variant="caption" color="error">
+                                  {item.error}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    <Button 
+                      variant="outlined" 
+                      startIcon={<DownloadIcon />}
+                      onClick={handleDownloadBulkUpdateFailedCSV}
+                    >
+                      Download Failed Rows CSV
+                    </Button>
+                  </>
+                )}
+
+                <Box sx={{ mt: 2 }}>
+                  <Button variant="outlined" onClick={handleClearBulkUpdateData}>
+                    Clear & Start New Update
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </TabPanel>
+
+          {/* Invoices Tab */}
+          <TabPanel value={tab} index={5}>
             {/* Search and filters */}
             <Box sx={{ mb: 3 }}>
               <Grid container spacing={2} alignItems="center">
@@ -1347,7 +1911,7 @@ export default function PurchasePage() {
                       <IconButton onClick={() => handleViewInvoice(inv._id)}>
                         <VisibilityIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDownloadCSV(inv._id)}>
+                      <IconButton onClick={(e) => handleDownloadMenuOpen(e, inv._id)}>
                         <GetAppIcon />
                       </IconButton>
                       <IconButton color="error" onClick={() => handleDeleteInvoice(inv._id)}>
@@ -1373,6 +1937,40 @@ export default function PurchasePage() {
               </Box>
             )}
           </TabPanel>
+
+          {/* Download Menu */}
+          <Menu
+            anchorEl={downloadAnchorEl}
+            open={Boolean(downloadAnchorEl)}
+            onClose={handleDownloadMenuClose}
+          >
+            <MenuItem onClick={handleDownloadExcel}>
+              <GetAppIcon sx={{ mr: 1 }} fontSize="small" />
+              Download Excel
+            </MenuItem>
+            <MenuItem onClick={handleDownloadPDF}>
+              <GetAppIcon sx={{ mr: 1 }} fontSize="small" />
+              Download PDF
+            </MenuItem>
+          </Menu>
+
+          {/* Success Dialog */}
+          <Dialog open={showSuccessDialog} onClose={handleStayHere}>
+            <DialogTitle>Invoice Created Successfully!</DialogTitle>
+            <DialogContent>
+              <Typography>
+                Your invoice has been saved. Would you like to view it or continue creating invoices?
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleStayHere} variant="outlined">
+                Stay Here
+              </Button>
+              <Button onClick={handleViewInvoiceFromDialog} variant="contained" autoFocus>
+                View Invoice
+              </Button>
+            </DialogActions>
+          </Dialog>
         </CardContent>
       </Card>
     </Container>

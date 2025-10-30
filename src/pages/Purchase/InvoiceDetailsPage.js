@@ -19,13 +19,17 @@ import {
   Alert,
   Grow,
   Grid,
-  IconButton
+  IconButton,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 // Helper: Format a number to 2 decimals
 const fmt = (n) => (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -39,6 +43,7 @@ export default function InvoiceDetailsPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
 
   // Fetch Invoice by ID
   const fetchInvoice = async () => {
@@ -95,6 +100,111 @@ export default function InvoiceDetailsPage() {
     } catch (err) {
       alert('Error downloading CSV');
     }
+  };
+
+  // Handle download menu
+  const handleDownloadMenuOpen = (event) => {
+    setDownloadAnchorEl(event.currentTarget);
+  };
+
+  const handleDownloadMenuClose = () => {
+    setDownloadAnchorEl(null);
+  };
+
+  // Download Excel
+  const handleDownloadExcel = async () => {
+    try {
+      const res = await api.get(`/purchases/invoices/${invoiceId}/csv`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date(invoice.date).toISOString().split('T')[0];
+      a.download = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error downloading Excel file');
+    }
+    handleDownloadMenuClose();
+  };
+
+  // Download PDF
+  const handleDownloadPDF = async () => {
+    try {
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      let yPos = 40;
+      
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('INVOICE', margin, yPos);
+      yPos += 30;
+      
+      // Invoice details
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const dateStr = new Date(invoice.date).toLocaleDateString();
+      doc.text(`Date: ${dateStr}`, margin, yPos);
+      yPos += 20;
+      doc.text(`Supplier: ${invoice.supplierId?.name || 'Unknown'}`, margin, yPos);
+      yPos += 20;
+      const locationText = invoice.locationId?.code 
+        ? `${invoice.locationId.name} (${invoice.locationId.code})`
+        : invoice.locationId?.name || 'Unknown';
+      doc.text(`Location: ${locationText}`, margin, yPos);
+      yPos += 30;
+      
+      // Items table
+      const tableData = invoice.items.map(item => [
+        item.name,
+        item.qty.toString(),
+        item.unitPrice.toFixed(2),
+        item.amount.toFixed(2),
+        item.defaultPrice.toFixed(2),
+        item.variance.toFixed(2)
+      ]);
+      
+      doc.autoTable({
+        head: [['Product', 'Qty', 'Unit Price', 'Amount', 'Default Price', 'Variance']],
+        body: tableData,
+        startY: yPos,
+        margin: { left: margin, right: margin },
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [66, 139, 202],
+          fontSize: 11,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { fontSize: 10 },
+        columnStyles: {
+          0: { cellWidth: 160 },
+          1: { halign: 'center', cellWidth: 50 },
+          2: { halign: 'right', cellWidth: 70 },
+          3: { halign: 'right', cellWidth: 70 },
+          4: { halign: 'right', cellWidth: 80 },
+          5: { halign: 'right', cellWidth: 70 }
+        }
+      });
+      
+      // Total
+      yPos = doc.lastAutoTable.finalY + 20;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      const totalText = `Total: ${invoice.total.toFixed(2)}`;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text(totalText, pageWidth - margin - 100, yPos);
+      
+      // Save
+      const fileName = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Error downloading PDF');
+    }
+    handleDownloadMenuClose();
   };
 
   // Rendering states
@@ -284,9 +394,9 @@ export default function InvoiceDetailsPage() {
                 <Button
                   variant="outlined"
                   startIcon={<GetAppIcon />}
-                  onClick={handleDownloadCSV}
+                  onClick={handleDownloadMenuOpen}
                 >
-                  Download CSV
+                  Download
                 </Button>
                 <Button
                   variant="outlined"
@@ -301,6 +411,22 @@ export default function InvoiceDetailsPage() {
             </CardContent>
           </Card>
         </Grow>
+
+        {/* Download Menu */}
+        <Menu
+          anchorEl={downloadAnchorEl}
+          open={Boolean(downloadAnchorEl)}
+          onClose={handleDownloadMenuClose}
+        >
+          <MenuItem onClick={handleDownloadExcel}>
+            <GetAppIcon sx={{ mr: 1 }} fontSize="small" />
+            Download Excel
+          </MenuItem>
+          <MenuItem onClick={handleDownloadPDF}>
+            <GetAppIcon sx={{ mr: 1 }} fontSize="small" />
+            Download PDF
+          </MenuItem>
+        </Menu>
       </Container>
     </Box>
   );
