@@ -62,6 +62,9 @@ import {
   EditNICTaxPage
 } from './pages/NICTax';
 
+// Import Purchase pages
+import { PurchaseLocationSelect, PurchasePage } from './pages/Purchase';
+
 function App() {
   const { token } = useContext(AuthContext);
 
@@ -523,6 +526,32 @@ function App() {
             isAuthenticated() ? (
               <MainLayout>
                 <NotificationList />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        {/* PURCHASE */}
+        <Route
+          path="/purchases"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <PurchaseLocationSelect />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/purchases/:locationId"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <PurchasePage />
               </MainLayout>
             ) : (
               <Navigate to="/" replace />
