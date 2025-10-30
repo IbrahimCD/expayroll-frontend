@@ -1,5 +1,5 @@
 // src/layout/NavBar.js
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { jwtDecode } from 'jwt-decode';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import api from '../services/api';
@@ -21,13 +22,20 @@ function NavBar() {
   const navigate = useNavigate();
   const { token, setToken } = useContext(AuthContext);
   const [profilePic, setProfilePic] = useState(null);
+  const [displayName, setDisplayName] = useState('');
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
 
   useEffect(() => {
     if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        if (decoded?.profilePic) setProfilePic(decoded.profilePic);
+        if (decoded?.name) setDisplayName(decoded.name);
+      } catch (_) {}
       fetchUserProfile();
     } else {
       setProfilePic(null);
+      setDisplayName('');
     }
   }, [token]);
 
@@ -35,11 +43,31 @@ function NavBar() {
     try {
       const res = await api.get('/auth/profile');
       setProfilePic(res.data.user.profilePic || null);
+      setDisplayName(res.data.user.name || '');
     } catch (err) {
       console.error('Error fetching profile:', err);
       setProfilePic(null);
     }
   };
+  const avatarFallbackText = useMemo(() => {
+    if (!displayName) return '';
+    const parts = String(displayName).trim().split(/\s+/);
+    const letters = parts.slice(0, 2).map(p => p[0]?.toUpperCase()).filter(Boolean);
+    return letters.join('');
+  }, [displayName]);
+
+  const cacheBustedSrc = useMemo(() => {
+    if (!profilePic) return null;
+    try {
+      const url = new URL(profilePic, window.location.origin);
+      url.searchParams.set('t', String(Math.floor(Date.now() / (60 * 1000)))); // bust cache every minute
+      return url.toString();
+    } catch (_) {
+      // If not a valid URL (e.g., data URL), return as is
+      return profilePic;
+    }
+  }, [profilePic]);
+
 
   const handleLogout = () => {
     setToken(null);
@@ -178,18 +206,42 @@ function NavBar() {
               onClick={() => navigate('/profile')}
               sx={{ color: '#000', ml: 1 }}
             >
-              {profilePic ? (
+              {cacheBustedSrc ? (
                 <Avatar
-                  src={profilePic}
+                  src={cacheBustedSrc}
+                  alt={displayName || 'User'}
+                  imgProps={{
+                    onError: () => setProfilePic(null),
+                    referrerPolicy: 'no-referrer',
+                    crossOrigin: 'anonymous',
+                  }}
                   sx={{
                     width: 48,
                     height: 48,
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    bgcolor: '#eee',
+                    color: '#555',
                     transition: 'transform 0.3s ease',
                     '&:hover': { transform: 'scale(1.1)' },
                   }}
-                />
+                >
+                  {avatarFallbackText}
+                </Avatar>
               ) : (
-                <AccountCircleIcon sx={{ fontSize: 48, color: '#000' }} />
+                <Avatar
+                  alt={displayName || 'User'}
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    bgcolor: '#eee',
+                    color: '#555',
+                  }}
+                >
+                  {avatarFallbackText || <AccountCircleIcon sx={{ fontSize: 32, color: '#777' }} />}
+                </Avatar>
               )}
             </IconButton>
           </Tooltip>

@@ -63,7 +63,7 @@ import {
 } from './pages/NICTax';
 
 // Import Purchase pages
-import { PurchaseLocationSelect, PurchasePage } from './pages/Purchase';
+import { PurchaseLocationSelect, PurchasePage, InvoiceDetailsPage } from './pages/Purchase';
 
 function App() {
   const { token } = useContext(AuthContext);
@@ -552,6 +552,18 @@ function App() {
             isAuthenticated() ? (
               <MainLayout>
                 <PurchasePage />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/purchases/:locationId/invoice/:invoiceId"
+          element={
+            isAuthenticated() ? (
+              <MainLayout>
+                <InvoiceDetailsPage />
               </MainLayout>
             ) : (
               <Navigate to="/" replace />
