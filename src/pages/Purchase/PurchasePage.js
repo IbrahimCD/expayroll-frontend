@@ -25,7 +25,8 @@ import {
   IconButton,
   Chip,
   CircularProgress,
-  LinearProgress
+  LinearProgress,
+  Pagination
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -54,13 +55,23 @@ export default function PurchasePage() {
 
   // Suppliers
   const [suppliers, setSuppliers] = useState([]);
+  const [suppliersForDropdowns, setSuppliersForDropdowns] = useState([]); // All suppliers for dropdowns
   const [newSupplierName, setNewSupplierName] = useState('');
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [supplierPage, setSupplierPage] = useState(1);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [supplierPagination, setSupplierPagination] = useState(null);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
 
   // Products
   const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({ name: '', supplierId: '', defaultUnitPrice: 0, rebateAmount: 0 });
   const [editingProduct, setEditingProduct] = useState(null);
+  const [productPage, setProductPage] = useState(1);
+  const [productSearch, setProductSearch] = useState('');
+  const [productSupplierFilter, setProductSupplierFilter] = useState('');
+  const [productPagination, setProductPagination] = useState(null);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // Purchase Form
   const [formDate, setFormDate] = useState('');
@@ -70,6 +81,13 @@ export default function PurchasePage() {
 
   // Invoices
   const [invoices, setInvoices] = useState([]);
+  const [invoicePage, setInvoicePage] = useState(1);
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [invoiceSupplierFilter, setInvoiceSupplierFilter] = useState('');
+  const [invoiceStartDate, setInvoiceStartDate] = useState('');
+  const [invoiceEndDate, setInvoiceEndDate] = useState('');
+  const [invoicePagination, setInvoicePagination] = useState(null);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   // Bulk Upload
   const [bulkCsvFile, setBulkCsvFile] = useState(null);
@@ -97,39 +115,153 @@ export default function PurchasePage() {
     };
     if (locationId) {
       fetchLocation();
-      fetchSuppliers();
-      fetchProducts();
-      fetchInvoices();
     }
   }, [locationId]);
 
-  // Fetch suppliers
-  const fetchSuppliers = async () => {
+  // Fetch all suppliers for dropdowns when location changes
+  useEffect(() => {
+    if (locationId) {
+      fetchAllSuppliers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId]);
+
+  // Fetch suppliers when page or search changes
+  useEffect(() => {
+    if (locationId) {
+      fetchSuppliers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, supplierPage]);
+
+  // Debounced search for suppliers
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locationId) {
+        setSupplierPage(1);
+        fetchSuppliers();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supplierSearch]);
+
+  // Fetch products when page or filters change
+  useEffect(() => {
+    if (locationId) {
+      fetchProducts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, productPage, productSupplierFilter]);
+
+  // Debounced search for products
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locationId) {
+        setProductPage(1);
+        fetchProducts();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productSearch]);
+
+  // Fetch invoices when page or filters change
+  useEffect(() => {
+    if (locationId) {
+      fetchInvoices();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, invoicePage, invoiceSupplierFilter, invoiceStartDate, invoiceEndDate]);
+
+  // Debounced search for invoices
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locationId) {
+        setInvoicePage(1);
+        fetchInvoices();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceSearch]);
+
+  // Fetch all suppliers for dropdowns (no pagination)
+  const fetchAllSuppliers = async () => {
     try {
-      const res = await api.get(`/purchases/suppliers/${locationId}`);
-      setSuppliers(res.data || []);
+      const params = {
+        page: 1,
+        limit: 1000, // Fetch all suppliers for dropdowns
+        search: ''
+      };
+      const res = await api.get(`/purchases/suppliers/${locationId}`, { params });
+      setSuppliersForDropdowns(res.data.data || []);
+    } catch (err) {
+      console.error('Error fetching all suppliers:', err);
+    }
+  };
+
+  // Fetch suppliers (with pagination)
+  const fetchSuppliers = async () => {
+    setLoadingSuppliers(true);
+    try {
+      const params = {
+        page: supplierPage,
+        limit: 20,
+        search: supplierSearch
+      };
+      const res = await api.get(`/purchases/suppliers/${locationId}`, { params });
+      setSuppliers(res.data.data || []);
+      setSupplierPagination(res.data.pagination);
     } catch (err) {
       console.error('Error fetching suppliers:', err);
+    } finally {
+      setLoadingSuppliers(false);
     }
   };
 
-  // Fetch products
+  // Fetch products (with pagination and filters)
   const fetchProducts = async () => {
+    setLoadingProducts(true);
     try {
-      const res = await api.get(`/purchases/products/${locationId}`);
-      setProducts(res.data || []);
+      const params = {
+        page: productPage,
+        limit: 20,
+        search: productSearch,
+        supplier: productSupplierFilter || undefined
+      };
+      const res = await api.get(`/purchases/products/${locationId}`, { params });
+      setProducts(res.data.data || []);
+      setProductPagination(res.data.pagination);
     } catch (err) {
       console.error('Error fetching products:', err);
+    } finally {
+      setLoadingProducts(false);
     }
   };
 
-  // Fetch invoices
+  // Fetch invoices (with pagination and filters)
   const fetchInvoices = async () => {
+    setLoadingInvoices(true);
     try {
-      const res = await api.get(`/purchases/invoices/${locationId}`);
-      setInvoices(res.data || []);
+      const params = {
+        page: invoicePage,
+        limit: 20,
+        search: invoiceSearch,
+        supplier: invoiceSupplierFilter || undefined,
+        startDate: invoiceStartDate || undefined,
+        endDate: invoiceEndDate || undefined
+      };
+      const res = await api.get(`/purchases/invoices/${locationId}`, { params });
+      setInvoices(res.data.data || []);
+      setInvoicePagination(res.data.pagination);
     } catch (err) {
       console.error('Error fetching invoices:', err);
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
@@ -142,6 +274,8 @@ export default function PurchasePage() {
     try {
       await api.post('/purchases/suppliers', { name: newSupplierName.trim(), locationId });
       setNewSupplierName('');
+      setSupplierPage(1);
+      fetchAllSuppliers(); // Refresh dropdown list
       fetchSuppliers();
       fetchProducts(); // Refresh products dropdown
     } catch (err) {
@@ -155,6 +289,7 @@ export default function PurchasePage() {
     try {
       await api.put(`/purchases/suppliers/${id}`, { name: newName.trim() });
       setEditingSupplier(null);
+      setSupplierPage(1);
       fetchSuppliers();
       fetchProducts();
     } catch (err) {
@@ -167,6 +302,7 @@ export default function PurchasePage() {
     if (!window.confirm('Delete supplier and its products?')) return;
     try {
       await api.delete(`/purchases/suppliers/${id}`);
+      setSupplierPage(1);
       fetchSuppliers();
       fetchProducts();
     } catch (err) {
@@ -183,6 +319,7 @@ export default function PurchasePage() {
     try {
       await api.post('/purchases/products', { ...newProduct, locationId });
       setNewProduct({ name: '', supplierId: '', defaultUnitPrice: 0, rebateAmount: 0 });
+      setProductPage(1);
       fetchProducts();
       if (selectedSupplier === newProduct.supplierId) {
         loadProductsForSupplier(newProduct.supplierId);
@@ -197,6 +334,7 @@ export default function PurchasePage() {
     try {
       await api.put(`/purchases/products/${id}`, updates);
       setEditingProduct(null);
+      setProductPage(1);
       fetchProducts();
       if (selectedSupplier) {
         loadProductsForSupplier(selectedSupplier);
@@ -211,6 +349,7 @@ export default function PurchasePage() {
     if (!window.confirm('Delete product?')) return;
     try {
       await api.delete(`/purchases/products/${id}`);
+      setProductPage(1);
       fetchProducts();
       if (selectedSupplier) {
         loadProductsForSupplier(selectedSupplier);
@@ -334,6 +473,7 @@ export default function PurchasePage() {
     if (!window.confirm('Delete this invoice?')) return;
     try {
       await api.delete(`/purchases/invoices/${id}`);
+      setInvoicePage(1);
       fetchInvoices();
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting invoice');
@@ -454,6 +594,8 @@ export default function PurchasePage() {
       
       if (res.data.created > 0) {
         // Refresh data
+        setSupplierPage(1);
+        setProductPage(1);
         fetchSuppliers();
         fetchProducts();
         // Stay on Bulk Upload tab to see results
@@ -574,7 +716,7 @@ export default function PurchasePage() {
                     label="Supplier"
                   >
                     <MenuItem value="">— Select —</MenuItem>
-                    {suppliers.map(s => (
+                    {suppliersForDropdowns.map(s => (
                       <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
                     ))}
                   </Select>
@@ -656,6 +798,7 @@ export default function PurchasePage() {
 
           {/* Suppliers Tab */}
           <TabPanel value={tab} index={1}>
+            {/* Add new supplier */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
               <TextField
                 placeholder="New supplier name"
@@ -666,6 +809,44 @@ export default function PurchasePage() {
               />
               <Button variant="contained" onClick={handleAddSupplier}>Add Supplier</Button>
             </Box>
+
+            {/* Search and filters */}
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Search Suppliers"
+                    value={supplierSearch}
+                    onChange={(e) => setSupplierSearch(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="Search by name..."
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Button variant="outlined" onClick={() => setSupplierSearch('')}>
+                    Clear Search
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Loading indicator */}
+            {loadingSuppliers && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {/* Pagination info */}
+            {supplierPagination && !loadingSuppliers && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Showing {suppliers.length} of {supplierPagination.total} suppliers
+              </Typography>
+            )}
+
+            {/* Suppliers list */}
+            {!loadingSuppliers && (
             <Box>
               {suppliers.map(s => (
                 <Card key={s._id} sx={{ mb: 2, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -686,12 +867,26 @@ export default function PurchasePage() {
                   </Box>
                 </Card>
               ))}
-              {suppliers.length === 0 && <Typography color="text.secondary">No suppliers yet.</Typography>}
+              {suppliers.length === 0 && <Typography color="text.secondary">No suppliers found.</Typography>}
             </Box>
+            )}
+
+            {/* Pagination controls */}
+            {supplierPagination && supplierPagination.pages > 1 && !loadingSuppliers && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Pagination
+                  count={supplierPagination.pages}
+                  page={supplierPagination.page}
+                  onChange={(e, value) => setSupplierPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </TabPanel>
 
           {/* Products Tab */}
           <TabPanel value={tab} index={2}>
+            {/* Add new product */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={3}>
                 <TextField
@@ -710,7 +905,7 @@ export default function PurchasePage() {
                     onChange={(e) => setNewProduct({ ...newProduct, supplierId: e.target.value })}
                     label="Supplier"
                   >
-                    {suppliers.map(s => (
+                    {suppliersForDropdowns.map(s => (
                       <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
                     ))}
                   </Select>
@@ -740,6 +935,62 @@ export default function PurchasePage() {
                 <Button variant="contained" fullWidth onClick={handleAddProduct}>Add Product</Button>
               </Grid>
             </Grid>
+
+            {/* Search and filters */}
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Search Products"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="Search by product name..."
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Filter by Supplier</InputLabel>
+                    <Select
+                      value={productSupplierFilter}
+                      onChange={(e) => setProductSupplierFilter(e.target.value)}
+                      label="Filter by Supplier"
+                    >
+                      <MenuItem value="">All Suppliers</MenuItem>
+                      {suppliersForDropdowns.map(s => (
+                        <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Button variant="outlined" fullWidth onClick={() => {
+                    setProductSearch('');
+                    setProductSupplierFilter('');
+                  }}>
+                    Clear Filters
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Loading indicator */}
+            {loadingProducts && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {/* Pagination info */}
+            {productPagination && !loadingProducts && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Showing {products.length} of {productPagination.total} products
+              </Typography>
+            )}
+
+            {/* Products list */}
+            {!loadingProducts && (
             <Box>
               {products.map(p => (
                 <Card key={p._id} sx={{ mb: 2, p: 2 }}>
@@ -768,8 +1019,21 @@ export default function PurchasePage() {
                   </Box>
                 </Card>
               ))}
-              {products.length === 0 && <Typography color="text.secondary">No products yet.</Typography>}
+              {products.length === 0 && <Typography color="text.secondary">No products found.</Typography>}
             </Box>
+            )}
+
+            {/* Pagination controls */}
+            {productPagination && productPagination.pages > 1 && !loadingProducts && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Pagination
+                  count={productPagination.pages}
+                  page={productPagination.page}
+                  onChange={(e, value) => setProductPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </TabPanel>
 
           {/* Bulk Upload Tab */}
@@ -989,9 +1253,85 @@ export default function PurchasePage() {
 
           {/* Invoices Tab */}
           <TabPanel value={tab} index={4}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Saved invoices. You can download any invoice as CSV.
-            </Typography>
+            {/* Search and filters */}
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Search by Supplier"
+                    value={invoiceSearch}
+                    onChange={(e) => setInvoiceSearch(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="Search supplier name..."
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Filter by Supplier</InputLabel>
+                    <Select
+                      value={invoiceSupplierFilter}
+                      onChange={(e) => setInvoiceSupplierFilter(e.target.value)}
+                      label="Filter by Supplier"
+                    >
+                      <MenuItem value="">All Suppliers</MenuItem>
+                      {suppliersForDropdowns.map(s => (
+                        <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Start Date"
+                    type="date"
+                    value={invoiceStartDate}
+                    onChange={(e) => setInvoiceStartDate(e.target.value)}
+                    fullWidth
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="End Date"
+                    type="date"
+                    value={invoiceEndDate}
+                    onChange={(e) => setInvoiceEndDate(e.target.value)}
+                    fullWidth
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <Button variant="outlined" fullWidth onClick={() => {
+                    setInvoiceSearch('');
+                    setInvoiceSupplierFilter('');
+                    setInvoiceStartDate('');
+                    setInvoiceEndDate('');
+                  }}>
+                    Clear Filters
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Loading indicator */}
+            {loadingInvoices && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {/* Pagination info */}
+            {invoicePagination && !loadingInvoices && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Showing {invoices.length} of {invoicePagination.total} invoices
+              </Typography>
+            )}
+
+            {/* Invoices list */}
+            {!loadingInvoices && (
             <Box>
               {invoices.map(inv => {
                 const dateStr = new Date(inv.date).toISOString().slice(0, 10);
@@ -1017,8 +1357,21 @@ export default function PurchasePage() {
                   </Card>
                 );
               })}
-              {invoices.length === 0 && <Typography color="text.secondary">No invoices yet.</Typography>}
+              {invoices.length === 0 && <Typography color="text.secondary">No invoices found.</Typography>}
             </Box>
+            )}
+
+            {/* Pagination controls */}
+            {invoicePagination && invoicePagination.pages > 1 && !loadingInvoices && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Pagination
+                  count={invoicePagination.pages}
+                  page={invoicePagination.page}
+                  onChange={(e, value) => setInvoicePage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </TabPanel>
         </CardContent>
       </Card>
