@@ -28,13 +28,13 @@ export default function CreatePayRunPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Automatically set end date to 7 days after start date
+  // Automatically set end date to 6 days after start date (7-day period inclusive)
   // whenever startDate changes (if you want this logic).
   useEffect(() => {
     if (startDate) {
       const start = new Date(startDate);
-      // Add 7 days
-      const newEnd = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Add 6 days
+      const newEnd = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
       setEndDate(newEnd.toISOString().substring(0, 10)); 
       // substring(0,10) => "YYYY-MM-DD" for <input type="date" />
     }
