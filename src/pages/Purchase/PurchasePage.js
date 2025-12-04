@@ -33,7 +33,8 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Divider
+  Divider,
+  Autocomplete
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -62,9 +63,9 @@ export default function PurchasePage() {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Suppliers
+  // Suppliers (organization-wide)
   const [suppliers, setSuppliers] = useState([]);
-  const [suppliersForDropdowns, setSuppliersForDropdowns] = useState([]); // All suppliers for dropdowns
+  const [suppliersForDropdowns, setSuppliersForDropdowns] = useState([]);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [supplierPage, setSupplierPage] = useState(1);
@@ -72,15 +73,19 @@ export default function PurchasePage() {
   const [supplierPagination, setSupplierPagination] = useState(null);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
 
-  // Products
+  // Products (organization-wide)
   const [products, setProducts] = useState([]);
-  const [newProduct, setNewProduct] = useState({ name: '', supplierId: '', defaultUnitPrice: 0, rebateAmount: 0 });
+  const [newProduct, setNewProduct] = useState({ name: '', supplierId: '', category: '', defaultUnitPrice: 0, rebateAmount: 0 });
   const [editingProduct, setEditingProduct] = useState(null);
   const [productPage, setProductPage] = useState(1);
   const [productSearch, setProductSearch] = useState('');
   const [productSupplierFilter, setProductSupplierFilter] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('');
   const [productPagination, setProductPagination] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Categories
+  const [categories, setCategories] = useState([]);
 
   // Purchase Form
   const [formDate, setFormDate] = useState('');
@@ -88,7 +93,7 @@ export default function PurchasePage() {
   const [formProducts, setFormProducts] = useState([]);
   const [total, setTotal] = useState(0);
 
-  // Invoices
+  // Invoices (location-specific)
   const [invoices, setInvoices] = useState([]);
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoiceSearch, setInvoiceSearch] = useState('');
@@ -144,29 +149,24 @@ export default function PurchasePage() {
     }
   }, [locationId]);
 
-  // Fetch all suppliers for dropdowns when location changes
+  // Fetch all suppliers for dropdowns when component mounts
   useEffect(() => {
-    if (locationId) {
-      fetchAllSuppliers();
-    }
+    fetchAllSuppliers();
+    fetchCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationId]);
+  }, []);
 
   // Fetch suppliers when page or search changes
   useEffect(() => {
-    if (locationId) {
-      fetchSuppliers();
-    }
+    fetchSuppliers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationId, supplierPage]);
+  }, [supplierPage]);
 
   // Debounced search for suppliers
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (locationId) {
-        setSupplierPage(1);
-        fetchSuppliers();
-      }
+      setSupplierPage(1);
+      fetchSuppliers();
     }, 500);
     
     return () => clearTimeout(timer);
@@ -175,19 +175,15 @@ export default function PurchasePage() {
 
   // Fetch products when page or filters change
   useEffect(() => {
-    if (locationId) {
-      fetchProducts();
-    }
+    fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationId, productPage, productSupplierFilter]);
+  }, [productPage, productSupplierFilter, productCategoryFilter]);
 
   // Debounced search for products
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (locationId) {
-        setProductPage(1);
-        fetchProducts();
-      }
+      setProductPage(1);
+      fetchProducts();
     }, 500);
     
     return () => clearTimeout(timer);
@@ -215,22 +211,32 @@ export default function PurchasePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceSearch]);
 
-  // Fetch all suppliers for dropdowns (no pagination)
+  // Fetch all suppliers for dropdowns (organization-wide, no pagination limit)
   const fetchAllSuppliers = async () => {
     try {
       const params = {
         page: 1,
-        limit: 1000, // Fetch all suppliers for dropdowns
+        limit: 1000,
         search: ''
       };
-      const res = await api.get(`/purchases/suppliers/${locationId}`, { params });
+      const res = await api.get('/purchases/suppliers', { params });
       setSuppliersForDropdowns(res.data.data || []);
     } catch (err) {
       console.error('Error fetching all suppliers:', err);
     }
   };
 
-  // Fetch suppliers (with pagination)
+  // Fetch categories
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/purchases/categories');
+      setCategories(res.data || []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  // Fetch suppliers (organization-wide, with pagination)
   const fetchSuppliers = async () => {
     setLoadingSuppliers(true);
     try {
@@ -239,7 +245,7 @@ export default function PurchasePage() {
         limit: 20,
         search: supplierSearch
       };
-      const res = await api.get(`/purchases/suppliers/${locationId}`, { params });
+      const res = await api.get('/purchases/suppliers', { params });
       setSuppliers(res.data.data || []);
       setSupplierPagination(res.data.pagination);
     } catch (err) {
@@ -249,7 +255,7 @@ export default function PurchasePage() {
     }
   };
 
-  // Fetch products (with pagination and filters)
+  // Fetch products (organization-wide, with pagination and filters)
   const fetchProducts = async () => {
     setLoadingProducts(true);
     try {
@@ -257,9 +263,10 @@ export default function PurchasePage() {
         page: productPage,
         limit: 20,
         search: productSearch,
-        supplier: productSupplierFilter || undefined
+        supplier: productSupplierFilter || undefined,
+        category: productCategoryFilter || undefined
       };
-      const res = await api.get(`/purchases/products/${locationId}`, { params });
+      const res = await api.get('/purchases/products', { params });
       setProducts(res.data.data || []);
       setProductPagination(res.data.pagination);
     } catch (err) {
@@ -269,7 +276,7 @@ export default function PurchasePage() {
     }
   };
 
-  // Fetch invoices (with pagination and filters)
+  // Fetch invoices (location-specific, with pagination and filters)
   const fetchInvoices = async () => {
     setLoadingInvoices(true);
     try {
@@ -298,12 +305,11 @@ export default function PurchasePage() {
       return;
     }
     try {
-      await api.post('/purchases/suppliers', { name: newSupplierName.trim(), locationId });
+      await api.post('/purchases/suppliers', { name: newSupplierName.trim() });
       setNewSupplierName('');
       setSupplierPage(1);
-      fetchAllSuppliers(); // Refresh dropdown list
+      fetchAllSuppliers();
       fetchSuppliers();
-      fetchProducts(); // Refresh products dropdown
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding supplier');
     }
@@ -316,6 +322,7 @@ export default function PurchasePage() {
       await api.put(`/purchases/suppliers/${id}`, { name: newName.trim() });
       setEditingSupplier(null);
       setSupplierPage(1);
+      fetchAllSuppliers();
       fetchSuppliers();
       fetchProducts();
     } catch (err) {
@@ -329,6 +336,7 @@ export default function PurchasePage() {
     try {
       await api.delete(`/purchases/suppliers/${id}`);
       setSupplierPage(1);
+      fetchAllSuppliers();
       fetchSuppliers();
       fetchProducts();
     } catch (err) {
@@ -343,10 +351,17 @@ export default function PurchasePage() {
       return;
     }
     try {
-      await api.post('/purchases/products', { ...newProduct, locationId });
-      setNewProduct({ name: '', supplierId: '', defaultUnitPrice: 0, rebateAmount: 0 });
+      await api.post('/purchases/products', {
+        name: newProduct.name,
+        supplierId: newProduct.supplierId,
+        category: newProduct.category,
+        defaultUnitPrice: newProduct.defaultUnitPrice,
+        rebateAmount: newProduct.rebateAmount
+      });
+      setNewProduct({ name: '', supplierId: '', category: '', defaultUnitPrice: 0, rebateAmount: 0 });
       setProductPage(1);
       fetchProducts();
+      fetchCategories();
       if (selectedSupplier === newProduct.supplierId) {
         loadProductsForSupplier(newProduct.supplierId);
       }
@@ -362,6 +377,7 @@ export default function PurchasePage() {
       setEditingProduct(null);
       setProductPage(1);
       fetchProducts();
+      fetchCategories();
       if (selectedSupplier) {
         loadProductsForSupplier(selectedSupplier);
       }
@@ -385,7 +401,7 @@ export default function PurchasePage() {
     }
   };
 
-  // Load products for supplier in form
+  // Load products for supplier in form (organization-wide)
   const loadProductsForSupplier = async (supplierId) => {
     if (!supplierId) {
       setFormProducts([]);
@@ -393,10 +409,11 @@ export default function PurchasePage() {
       return;
     }
     try {
-      const res = await api.get(`/purchases/products/supplier/${supplierId}/${locationId}`);
+      const res = await api.get(`/purchases/products/supplier/${supplierId}`);
       const prods = (res.data || []).map(p => ({
         productId: p._id,
         name: p.name,
+        category: p.category || '',
         qty: 0,
         unitPrice: p.defaultUnitPrice,
         defaultPrice: p.defaultUnitPrice,
@@ -419,6 +436,7 @@ export default function PurchasePage() {
       setFormProducts([]);
       setTotal(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSupplier]);
 
   // Recalculate row
@@ -730,12 +748,12 @@ export default function PurchasePage() {
 
     try {
       const res = await api.post('/purchases/products/bulk-create', {
-        locationId,
         products: bulkParsedData.map(row => ({
           supplier: row.Supplier || row.supplier,
           name: row['Product Name'] || row.name,
-          defaultUnitPrice: row['Default Unit Price'] || 0,
-          rebateAmount: row['Rebate Amount'] || 0
+          category: row.Category || row.category || '',
+          defaultUnitPrice: row['Default Unit Price'] || row.defaultUnitPrice || 0,
+          rebateAmount: row['Rebate Amount'] || row.rebateAmount || 0
         }))
       });
 
@@ -745,9 +763,10 @@ export default function PurchasePage() {
         // Refresh data
         setSupplierPage(1);
         setProductPage(1);
+        fetchAllSuppliers();
         fetchSuppliers();
         fetchProducts();
-        // Stay on Bulk Upload tab to see results
+        fetchCategories();
       }
 
       setBulkMessage(`Bulk create completed! Created: ${res.data.created}, Failed: ${res.data.failed}`);
@@ -760,7 +779,6 @@ export default function PurchasePage() {
   };
 
   const handleClearBulkData = () => {
-    // Confirm before clearing if there's data
     if (bulkParsedData.length > 0 || bulkResults) {
       if (!window.confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
         return;
@@ -775,7 +793,7 @@ export default function PurchasePage() {
   };
 
   const handleDownloadTemplate = () => {
-    const template = 'Supplier,Product Name,Default Unit Price,Rebate Amount\nABC Supplier,Pen,10,1\nXYZ Corp,Notebook,5.50,0.5';
+    const template = 'Supplier,Product Name,Category,Default Unit Price,Rebate Amount\nABC Supplier,Pen,Office Supplies,10,1\nXYZ Corp,Notebook,Office Supplies,5.50,0.5';
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -790,7 +808,6 @@ export default function PurchasePage() {
       return;
     }
 
-    // Helper function to escape CSV fields
     const escapeCSV = (value) => {
       const str = String(value);
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -799,10 +816,11 @@ export default function PurchasePage() {
       return str;
     };
 
-    const headers = ['Supplier', 'Product Name', 'Default Unit Price', 'Rebate Amount', 'Error'];
+    const headers = ['Supplier', 'Product Name', 'Category', 'Default Unit Price', 'Rebate Amount', 'Error'];
     const rows = bulkResults.failedProducts.map(item => [
       escapeCSV(item.supplier),
       escapeCSV(item.name),
+      escapeCSV(item.category || ''),
       escapeCSV(item.defaultUnitPrice),
       escapeCSV(item.rebateAmount),
       escapeCSV(item.error)
@@ -890,11 +908,11 @@ export default function PurchasePage() {
 
     try {
       const res = await api.post('/purchases/products/bulk-update', {
-        locationId,
         products: bulkUpdateParsedData.map(row => ({
           productId: row['Product ID'] || row.productId || row.id,
           supplier: row.Supplier || row.supplier,
           name: row['Product Name'] || row.name,
+          category: row.Category || row.category || '',
           defaultUnitPrice: row['Default Unit Price'] || row.defaultUnitPrice || 0,
           rebateAmount: row['Rebate Amount'] || row.rebateAmount || 0
         }))
@@ -909,6 +927,7 @@ export default function PurchasePage() {
         fetchAllSuppliers();
         fetchSuppliers();
         fetchProducts();
+        fetchCategories();
       }
 
       setBulkUpdateMessage(`Bulk update completed! Updated: ${res.data.updated}, Failed: ${res.data.failed}`);
@@ -933,9 +952,9 @@ export default function PurchasePage() {
 
   const handleDownloadBulkUpdateTemplate = async () => {
     try {
-      // Fetch all products for the location
-      const res = await api.get(`/purchases/products/${locationId}`, {
-        params: { page: 1, limit: 10000 } // Get all products
+      // Fetch all products (organization-wide)
+      const res = await api.get('/purchases/products', {
+        params: { page: 1, limit: 10000 }
       });
       
       const allProducts = res.data.data || [];
@@ -954,11 +973,12 @@ export default function PurchasePage() {
       };
 
       const rows = [
-        ['Product ID', 'Supplier', 'Product Name', 'Default Unit Price', 'Rebate Amount'],
+        ['Product ID', 'Supplier', 'Product Name', 'Category', 'Default Unit Price', 'Rebate Amount'],
         ...allProducts.map(p => [
           escapeCSV(p._id),
           escapeCSV(p.supplierId?.name || ''),
           escapeCSV(p.name),
+          escapeCSV(p.category || ''),
           escapeCSV(p.defaultUnitPrice),
           escapeCSV(p.rebateAmount)
         ])
@@ -993,12 +1013,13 @@ export default function PurchasePage() {
     };
 
     const rows = [
-      ['Row', 'Product ID', 'Supplier', 'Product Name', 'Default Unit Price', 'Rebate Amount', 'Error'],
+      ['Row', 'Product ID', 'Supplier', 'Product Name', 'Category', 'Default Unit Price', 'Rebate Amount', 'Error'],
       ...bulkUpdateResults.failedUpdates.map(p => [
         escapeCSV(p.row),
         escapeCSV(p.productId),
         escapeCSV(p.supplier),
         escapeCSV(p.name),
+        escapeCSV(p.category || ''),
         escapeCSV(p.defaultUnitPrice),
         escapeCSV(p.rebateAmount),
         escapeCSV(p.error)
@@ -1085,6 +1106,7 @@ export default function PurchasePage() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Product Name</TableCell>
+                    <TableCell>Category</TableCell>
                     <TableCell align="right">Qty</TableCell>
                     <TableCell align="right">Unit Price</TableCell>
                     <TableCell align="right">Amount</TableCell>
@@ -1095,12 +1117,13 @@ export default function PurchasePage() {
                 <TableBody>
                   {formProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">No products loaded. Select a supplier.</TableCell>
+                      <TableCell colSpan={7} align="center">No products loaded. Select a supplier.</TableCell>
                     </TableRow>
                   ) : (
                     formProducts.map((item, idx) => (
                       <TableRow key={idx}>
                         <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.category || '-'}</TableCell>
                         <TableCell align="right">
                           <TextField
                             type="number"
@@ -1134,7 +1157,7 @@ export default function PurchasePage() {
                     ))
                   )}
                   <TableRow>
-                    <TableCell colSpan={3} align="right"><strong>Totals:</strong></TableCell>
+                    <TableCell colSpan={4} align="right"><strong>Totals:</strong></TableCell>
                     <TableCell align="right"><strong>{fmt(total)}</strong></TableCell>
                     <TableCell colSpan={2}></TableCell>
                   </TableRow>
@@ -1235,7 +1258,7 @@ export default function PurchasePage() {
           <TabPanel value={tab} index={2}>
             {/* Add new product */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={2}>
                 <TextField
                   label="Product Name"
                   placeholder="e.g. Pen"
@@ -1244,7 +1267,7 @@ export default function PurchasePage() {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={2}>
                 <FormControl fullWidth>
                   <InputLabel>Supplier</InputLabel>
                   <Select
@@ -1257,6 +1280,18 @@ export default function PurchasePage() {
                     ))}
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <Autocomplete
+                  freeSolo
+                  options={categories}
+                  value={newProduct.category}
+                  onChange={(e, newValue) => setNewProduct({ ...newProduct, category: newValue || '' })}
+                  onInputChange={(e, newInputValue) => setNewProduct({ ...newProduct, category: newInputValue })}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Category" placeholder="e.g. Office Supplies" />
+                  )}
+                />
               </Grid>
               <Grid item xs={12} sm={2}>
                 <TextField
@@ -1279,14 +1314,14 @@ export default function PurchasePage() {
                 />
               </Grid>
               <Grid item xs={12} sm={2}>
-                <Button variant="contained" fullWidth onClick={handleAddProduct}>Add Product</Button>
+                <Button variant="contained" fullWidth onClick={handleAddProduct} sx={{ height: '56px' }}>Add Product</Button>
               </Grid>
             </Grid>
 
             {/* Search and filters */}
             <Box sx={{ mb: 3 }}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <TextField
                     label="Search Products"
                     value={productSearch}
@@ -1296,7 +1331,7 @@ export default function PurchasePage() {
                     placeholder="Search by product name..."
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Filter by Supplier</InputLabel>
                     <Select
@@ -1311,10 +1346,26 @@ export default function PurchasePage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Filter by Category</InputLabel>
+                    <Select
+                      value={productCategoryFilter}
+                      onChange={(e) => setProductCategoryFilter(e.target.value)}
+                      label="Filter by Category"
+                    >
+                      <MenuItem value="">All Categories</MenuItem>
+                      {categories.map(cat => (
+                        <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={3}>
                   <Button variant="outlined" fullWidth onClick={() => {
                     setProductSearch('');
                     setProductSupplierFilter('');
+                    setProductCategoryFilter('');
                   }}>
                     Clear Filters
                   </Button>
@@ -1346,6 +1397,7 @@ export default function PurchasePage() {
                       <Typography variant="subtitle1"><strong>{p.name}</strong></Typography>
                       <Typography variant="body2" color="text.secondary">
                         <Chip label={p.supplierId?.name || 'Unknown'} size="small" sx={{ mr: 1 }} />
+                        {p.category && <Chip label={p.category} size="small" variant="outlined" sx={{ mr: 1 }} />}
                         Default: {fmt(p.defaultUnitPrice)} • Rebate: {fmt(p.rebateAmount)}
                       </Typography>
                     </Box>
@@ -1353,9 +1405,10 @@ export default function PurchasePage() {
                       <IconButton onClick={() => {
                         const newName = prompt('Product name:', p.name) || p.name;
                         const newSup = prompt('Supplier ID:', p.supplierId?._id || '') || p.supplierId?._id;
+                        const newCat = prompt('Category:', p.category || '') || '';
                         const newPrice = parseFloat(prompt('Default Unit Price:', p.defaultUnitPrice)) || 0;
                         const newReb = parseFloat(prompt('Rebate Amount:', p.rebateAmount)) || 0;
-                        handleUpdateProduct(p._id, { name: newName, supplierId: newSup, defaultUnitPrice: newPrice, rebateAmount: newReb });
+                        handleUpdateProduct(p._id, { name: newName, supplierId: newSup, category: newCat, defaultUnitPrice: newPrice, rebateAmount: newReb });
                       }}>
                         <EditIcon />
                       </IconButton>
@@ -1390,14 +1443,14 @@ export default function PurchasePage() {
               <Typography variant="h6" sx={{ mb: 2 }}>Bulk Product Upload</Typography>
               <Paper sx={{ p: 2, mb: 2, backgroundColor: '#f5f5f5' }}>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>CSV Format:</strong> Supplier,Product Name,Default Unit Price,Rebate Amount
+                  <strong>CSV Format:</strong> Supplier,Product Name,Category,Default Unit Price,Rebate Amount
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   <strong>Example:</strong>
                 </Typography>
                 <Box component="pre" sx={{ fontSize: '0.875rem', mb: 1 }}>
-                  ABC Supplier,Pen,10,1{'\n'}
-                  XYZ Corp,Notebook,5.50,0.5
+                  ABC Supplier,Pen,Office Supplies,10,1{'\n'}
+                  XYZ Corp,Notebook,Office Supplies,5.50,0.5
                 </Box>
                 <Button
                   variant="outlined"
@@ -1502,6 +1555,7 @@ export default function PurchasePage() {
                       <TableRow>
                         <TableCell>Supplier</TableCell>
                         <TableCell>Product Name</TableCell>
+                        <TableCell>Category</TableCell>
                         <TableCell align="right">Default Unit Price</TableCell>
                         <TableCell align="right">Rebate Amount</TableCell>
                       </TableRow>
@@ -1511,13 +1565,14 @@ export default function PurchasePage() {
                         <TableRow key={idx}>
                           <TableCell>{row.Supplier || row.supplier || '-'}</TableCell>
                           <TableCell>{row['Product Name'] || row.name || '-'}</TableCell>
-                          <TableCell align="right">{row['Default Unit Price'] || '0'}</TableCell>
-                          <TableCell align="right">{row['Rebate Amount'] || '0'}</TableCell>
+                          <TableCell>{row.Category || row.category || '-'}</TableCell>
+                          <TableCell align="right">{row['Default Unit Price'] || row.defaultUnitPrice || '0'}</TableCell>
+                          <TableCell align="right">{row['Rebate Amount'] || row.rebateAmount || '0'}</TableCell>
                         </TableRow>
                       ))}
                       {bulkParsedData.length > 50 && (
                         <TableRow>
-                          <TableCell colSpan={4} align="center">
+                          <TableCell colSpan={5} align="center">
                             ... and {bulkParsedData.length - 50} more rows
                           </TableCell>
                         </TableRow>
@@ -1569,6 +1624,7 @@ export default function PurchasePage() {
                             <TableCell>Row</TableCell>
                             <TableCell>Supplier</TableCell>
                             <TableCell>Product Name</TableCell>
+                            <TableCell>Category</TableCell>
                             <TableCell align="right">Default Unit Price</TableCell>
                             <TableCell align="right">Rebate Amount</TableCell>
                             <TableCell>Error</TableCell>
@@ -1580,6 +1636,7 @@ export default function PurchasePage() {
                               <TableCell>{item.row}</TableCell>
                               <TableCell>{item.supplier}</TableCell>
                               <TableCell>{item.name}</TableCell>
+                              <TableCell>{item.category || '-'}</TableCell>
                               <TableCell align="right">{item.defaultUnitPrice}</TableCell>
                               <TableCell align="right">{item.rebateAmount}</TableCell>
                               <TableCell>
@@ -1609,9 +1666,9 @@ export default function PurchasePage() {
               
               <Typography variant="subtitle2" gutterBottom>CSV Format:</Typography>
               <Paper sx={{ p: 2, backgroundColor: '#f5f5f5', fontFamily: 'monospace', fontSize: '0.85rem', mb: 2 }}>
-                Product ID,Supplier,Product Name,Default Unit Price,Rebate Amount<br />
-                64f8a3b2c1d2e3f4a5b6c7d8,ABC Supplier,Product 1,10.50,1.00<br />
-                64f8a3b2c1d2e3f4a5b6c7d9,XYZ Supplier,Product 2,25.00,2.50
+                Product ID,Supplier,Product Name,Category,Default Unit Price,Rebate Amount<br />
+                64f8a3b2c1d2e3f4a5b6c7d8,ABC Supplier,Product 1,Office Supplies,10.50,1.00<br />
+                64f8a3b2c1d2e3f4a5b6c7d9,XYZ Supplier,Product 2,Electronics,25.00,2.50
               </Paper>
 
               <Button 
@@ -1713,6 +1770,7 @@ export default function PurchasePage() {
                         <TableCell>Product ID</TableCell>
                         <TableCell>Supplier</TableCell>
                         <TableCell>Product Name</TableCell>
+                        <TableCell>Category</TableCell>
                         <TableCell>Default Unit Price</TableCell>
                         <TableCell>Rebate Amount</TableCell>
                       </TableRow>
@@ -1723,6 +1781,7 @@ export default function PurchasePage() {
                           <TableCell>{row['Product ID'] || row.productId || row.id}</TableCell>
                           <TableCell>{row.Supplier || row.supplier}</TableCell>
                           <TableCell>{row['Product Name'] || row.name}</TableCell>
+                          <TableCell>{row.Category || row.category || '-'}</TableCell>
                           <TableCell>{row['Default Unit Price'] || row.defaultUnitPrice || 0}</TableCell>
                           <TableCell>{row['Rebate Amount'] || row.rebateAmount || 0}</TableCell>
                         </TableRow>
@@ -1776,6 +1835,7 @@ export default function PurchasePage() {
                             <TableCell>Product ID</TableCell>
                             <TableCell>Supplier</TableCell>
                             <TableCell>Product Name</TableCell>
+                            <TableCell>Category</TableCell>
                             <TableCell>Error</TableCell>
                           </TableRow>
                         </TableHead>
@@ -1786,6 +1846,7 @@ export default function PurchasePage() {
                               <TableCell>{item.productId}</TableCell>
                               <TableCell>{item.supplier}</TableCell>
                               <TableCell>{item.name}</TableCell>
+                              <TableCell>{item.category || '-'}</TableCell>
                               <TableCell>
                                 <Typography variant="caption" color="error">
                                   {item.error}
@@ -1976,4 +2037,3 @@ export default function PurchasePage() {
     </Container>
   );
 }
-
