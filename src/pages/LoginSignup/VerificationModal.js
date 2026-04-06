@@ -9,7 +9,7 @@ function VerificationModal({ open, email, onClose, onSuccess }) {
 
   const handleVerify = async () => {
     try {
-      const res = await api.post('/auth/verify', { email, verificationCode });
+      await api.post('/auth/verify', { email, verificationCode });
       // If verification succeeds, you may automatically log in the user here
       onSuccess();
     } catch (error) {

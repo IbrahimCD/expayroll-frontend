@@ -85,22 +85,6 @@ export default function InvoiceDetailsPage() {
     }
   };
 
-  // Download CSV handler
-  const handleDownloadCSV = async () => {
-    try {
-      const res = await api.get(`/purchases/invoices/${invoiceId}/csv`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const dateStr = new Date(invoice.date).toISOString().split('T')[0];
-      a.download = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('Error downloading CSV');
-    }
-  };
 
   // Handle download menu
   const handleDownloadMenuOpen = (event) => {

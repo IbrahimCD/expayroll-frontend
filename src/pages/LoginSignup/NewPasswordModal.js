@@ -15,7 +15,7 @@ function NewPasswordModal({ open, email, resetCode, onClose }) {
       return;
     }
     try {
-      const res = await api.post('/auth/reset-password', {
+      await api.post('/auth/reset-password', {
         email,
         resetCode,
         newPassword

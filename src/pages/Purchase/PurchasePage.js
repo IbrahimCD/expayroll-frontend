@@ -76,7 +76,7 @@ export default function PurchasePage() {
   // Products (organization-wide)
   const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({ name: '', supplierId: '', category: '', defaultUnitPrice: 0, rebateAmount: 0 });
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [, setEditingProduct] = useState(null);
   const [productPage, setProductPage] = useState(1);
   const [productSearch, setProductSearch] = useState('');
   const [productSupplierFilter, setProductSupplierFilter] = useState('');
@@ -513,24 +513,6 @@ export default function PurchasePage() {
       fetchInvoices();
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting invoice');
-    }
-  };
-
-  // Download invoice CSV
-  const handleDownloadCSV = async (invoiceId) => {
-    try {
-      const res = await api.get(`/purchases/invoices/${invoiceId}/csv`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const invoice = invoices.find(inv => inv._id === invoiceId);
-      const dateStr = new Date(invoice.date).toISOString().split('T')[0];
-      a.download = `${dateStr} - ${invoice.supplierId?.name || 'invoice'}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('Error downloading CSV');
     }
   };
 

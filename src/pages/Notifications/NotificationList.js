@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, List, ListItem, ListItemText, Paper, Box } from '@mui/material';
+import { Container, Typography, List, ListItem, ListItemText, Paper } from '@mui/material';
 import api from '../../services/api';
 
 export default function NotificationList() {

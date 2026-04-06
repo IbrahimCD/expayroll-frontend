@@ -582,11 +582,8 @@ export default function EmployeePayRunModal({
   const {
     employeeName,
     payrollId,
-    payStructureName,
-    timesheetName,
     breakdown = {},
     payStructure,
-    rawTimesheetIds,
     contributingTimesheets
   } = employeeEntry;
 

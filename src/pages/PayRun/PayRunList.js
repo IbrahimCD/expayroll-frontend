@@ -91,16 +91,16 @@ export default function PayRunList() {
     setPage(value);
   };
 
-  const handleRowClick = (payRunId) => {
+  const handleRowClick = useCallback((payRunId) => {
     navigate(`/payruns/${payRunId}`);
-  };
+  }, [navigate]);
 
   const handleCreatePayRun = () => {
     navigate('/payruns/create');
   };
 
   // Delete handler for Draft pay runs only
-  const handleDelete = async (payRunId, event) => {
+  const handleDelete = useCallback(async (payRunId, event) => {
     event.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this Draft pay run?')) return;
     try {
@@ -110,7 +110,7 @@ export default function PayRunList() {
       console.error('Error deleting pay run:', err);
       setError(err.response?.data?.message || 'Failed to delete pay run.');
     }
-  };
+  }, [fetchPayRuns]);
 
   // Render status with a color-coded Chip
   const renderStatusChip = (status) => {
@@ -163,7 +163,7 @@ export default function PayRunList() {
         </TableRow>
       </Grow>
     ));
-  }, [payruns]);
+  }, [payruns, handleDelete, handleRowClick]);
 
   return (
     <Container sx={{ mt: 4 }}>

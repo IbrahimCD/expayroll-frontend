@@ -10,7 +10,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Box,
   Paper
 } from '@mui/material';
 import api from '../../services/api';

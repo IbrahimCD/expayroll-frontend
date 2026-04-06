@@ -8,9 +8,7 @@ import {
   TextField,
   Button,
   Box,
-  Divider,
-  FormControlLabel,
-  Switch
+  Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
