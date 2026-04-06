@@ -39,7 +39,7 @@ export default function TimesheetList() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const fetchTimesheets = async () => {
+  const fetchTimesheets = React.useCallback(async () => {
     setLoading(true);
     try {
       const params = { search, status: statusFilter, page, limit: 10 };
@@ -51,26 +51,25 @@ export default function TimesheetList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchLocations = async () => {
-    try {
-      const res = await api.get('/locations');
-      const locMap = {};
-      (res.data || []).forEach((loc) => {
-        locMap[loc._id] = loc;
-      });
-      setLocations(locMap);
-    } catch (err) {
-      console.error('Error fetching locations:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchTimesheets();
   }, [search, statusFilter, page]);
 
   useEffect(() => {
+    fetchTimesheets();
+  }, [fetchTimesheets]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const res = await api.get('/locations');
+        const locMap = {};
+        (res.data || []).forEach((loc) => {
+          locMap[loc._id] = loc;
+        });
+        setLocations(locMap);
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+      }
+    };
     fetchLocations();
   }, []);
 
@@ -90,19 +89,7 @@ export default function TimesheetList() {
     navigate(`/timesheets/${id}`);
   };
 
-  const handleApprove = async (id, e) => {
-    e.stopPropagation();
-    if (window.confirm('Approve this timesheet?')) {
-      try {
-        await api.put(`/timesheets/${id}/approve`);
-        fetchTimesheets();
-      } catch (error) {
-        console.error('Error approving timesheet:', error);
-      }
-    }
-  };
-
-  // New function: Revert approved timesheet to draft
+  // Revert approved timesheet to draft
   const handleRevert = async (id, e) => {
     e.stopPropagation();
     if (window.confirm('Revert this timesheet to Draft?')) {

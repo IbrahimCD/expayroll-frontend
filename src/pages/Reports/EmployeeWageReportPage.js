@@ -27,8 +27,8 @@ export default function EmployeeWageReportPage() {
   const [searchName, setSearchName] = useState('');
 
   // Sorting states (if needed for filtering before export)
-  const [orderBy, setOrderBy] = useState('');
-  const [orderDirection, setOrderDirection] = useState('asc');
+  const [orderBy] = useState('');
+  const [orderDirection] = useState('asc');
 
   // State for locations (for filtering)
   const [locations, setLocations] = useState([]);

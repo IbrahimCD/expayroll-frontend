@@ -21,17 +21,16 @@ export default function ReminderDetails() {
   const [reminder, setReminder] = useState(null);
   const [error, setError] = useState('');
 
-  const fetchReminder = async () => {
-    try {
-      const res = await api.get(`/reminders/${reminderId}`);
-      setReminder(res.data.reminder);
-    } catch (err) {
-      console.error(err);
-      setError('Error fetching reminder');
-    }
-  };
-
   useEffect(() => {
+    const fetchReminder = async () => {
+      try {
+        const res = await api.get(`/reminders/${reminderId}`);
+        setReminder(res.data.reminder);
+      } catch (err) {
+        console.error(err);
+        setError('Error fetching reminder');
+      }
+    };
     fetchReminder();
   }, [reminderId]);
 

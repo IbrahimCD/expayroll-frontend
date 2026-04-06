@@ -28,7 +28,6 @@ export default function BatchCreateTimesheetPage() {
 
   // Upload states
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
 
   // For "quick parse" (no editing) vs "detailed parse" (with editing)
@@ -106,7 +105,6 @@ export default function BatchCreateTimesheetPage() {
     }
 
     setUploading(true);
-    setUploadProgress(0);
     setUploadMessage('');
 
     try {
