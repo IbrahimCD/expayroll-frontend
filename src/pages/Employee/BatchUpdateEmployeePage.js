@@ -91,6 +91,30 @@ export default function BatchUpdateEmployeePage() {
     }, {});
   }, [locations]);
 
+  const getLocationCode = (locationRef) => {
+    if (!locationRef) return '';
+
+    if (typeof locationRef === 'string') {
+      return locationLookup[locationRef] || locationRef;
+    }
+
+    if (typeof locationRef === 'object') {
+      if (locationRef.code) return locationRef.code;
+      if (locationRef._id) return locationLookup[locationRef._id] || '';
+    }
+
+    return '';
+  };
+
+  const getLocationAccessCodes = (locationAccess) => {
+    if (!Array.isArray(locationAccess)) return '';
+
+    return locationAccess
+      .map((locationRef) => getLocationCode(locationRef))
+      .filter(Boolean)
+      .join(';');
+  };
+
   // ---------- Fetch employees (with status filter only) ----------
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
@@ -159,11 +183,9 @@ export default function BatchUpdateEmployeePage() {
       const hr = ps.hourlyRates || {};
       const oc = (ps.hasOtherConsiderations && ps.otherConsiderations) || {};
       
-      // NEW: Use the locationLookup to output the location code instead of the ObjectId
-      const baseLocationCode = locationLookup[emp.baseLocationId] || '';
-      const locationAccessCodes = (emp.locationAccess && Array.isArray(emp.locationAccess))
-        ? emp.locationAccess.map(id => locationLookup[id] || id).join(';')
-        : '';
+      // Export location codes whether employee data contains raw ids or populated objects.
+      const baseLocationCode = getLocationCode(emp.baseLocationId);
+      const locationAccessCodes = getLocationAccessCodes(emp.locationAccess);
 
       return {
         employeeId: emp._id,
