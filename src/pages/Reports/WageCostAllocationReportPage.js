@@ -22,6 +22,43 @@ import 'jspdf-autotable';
 
 import api from '../../services/api';
 
+/**
+ * Resolve the `contributingTimesheets` record backing one report row.
+ * Matching is on display names, so duplicate employee or timesheet names
+ * will collide — kept identical everywhere so the table, the totals and the
+ * CSV always agree with each other.
+ */
+function findContributingRecord(contributingTimesheets, employeeName, timesheetName) {
+  return (contributingTimesheets || []).find(
+    (ct) => ct.employeeName === employeeName && ct.timesheetName === timesheetName
+  );
+}
+
+/**
+ * Sum the per-timesheet operational columns (hours/days/extra shift/addition/
+ * deduction) for a single timesheet block. Iterates the same employee rows the
+ * table renders, so the TOTAL row is always the sum of the visible values.
+ */
+function sumOperationalTotals(ts, contributingTimesheets) {
+  return (ts.employees || []).reduce(
+    (acc, emp) => {
+      const ct = findContributingRecord(
+        contributingTimesheets,
+        emp.employeeName,
+        ts.timesheetName
+      );
+      if (!ct) return acc;
+      acc.hoursWorked += ct.hoursWorked || 0;
+      acc.daysWorked += ct.daysWorked || 0;
+      acc.extraShiftWorked += ct.extraShiftWorked || 0;
+      acc.addition += ct.addition || 0;
+      acc.deduction += ct.deduction || 0;
+      return acc;
+    },
+    { hoursWorked: 0, daysWorked: 0, extraShiftWorked: 0, addition: 0, deduction: 0 }
+  );
+}
+
 export default function WageCostAllocationReportPage() {
   const [payRuns, setPayRuns] = useState([]);
   const [selectedPayRun, setSelectedPayRun] = useState('');
@@ -146,6 +183,7 @@ export default function WageCostAllocationReportPage() {
     csvContent += `"Wage Cost Allocation Report for: ${reportData.payRunName}"\n\n`;
 
     reportData.wageCostAllocations.forEach((ts, index) => {
+      const opTotals = sumOperationalTotals(ts, reportData.contributingTimesheets);
       csvContent += `Contributing Timesheet #${index + 1}\n`;
       csvContent += `Timesheet Name:,${ts.timesheetName || 'N/A'}\n`;
       csvContent += `Work Location:,${ts.locationName || 'N/A'}\n`;
@@ -161,6 +199,7 @@ export default function WageCostAllocationReportPage() {
       csvContent += [
         'Employee Name',
         'Payroll ID',
+        'Base Location',
         'Structure Name',
         'Hours Worked',
         'Days Worked',
@@ -168,6 +207,8 @@ export default function WageCostAllocationReportPage() {
         'Addition',
         'Deduction',
         'Notes',
+        'NI Hours Used (period)',
+        'Cash Hours Used (period)',
         'Allocated NI Wage',
         'Allocated Cash Wage',
         'Allocated Eer NIC',
@@ -175,10 +216,10 @@ export default function WageCostAllocationReportPage() {
       ].join(',') + '\n';
 
       ts.employees.forEach((emp) => {
-        const matchingCT = reportData.contributingTimesheets.find(
-          (ct) =>
-            ct.employeeName === emp.employeeName &&
-            ct.timesheetName === ts.timesheetName
+        const matchingCT = findContributingRecord(
+          reportData.contributingTimesheets,
+          emp.employeeName,
+          ts.timesheetName
         );
 
         const hoursWorked = matchingCT ? matchingCT.hoursWorked.toFixed(2) : '0.00';
@@ -191,6 +232,7 @@ export default function WageCostAllocationReportPage() {
         csvContent += [
           `"${emp.employeeName}"`,
           emp.payrollId,
+          `"${emp.baseLocation || 'N/A'}"`,
           emp.payStructureName,
           hoursWorked,
           daysWorked,
@@ -198,6 +240,8 @@ export default function WageCostAllocationReportPage() {
           addition,
           deduction,
           `"${notes}"`,
+          (emp.niHoursUsed || 0).toFixed(2),
+          (emp.cashHoursUsed || 0).toFixed(2),
           emp.allocatedNiWage.toFixed(2),
           emp.allocatedCashWage.toFixed(2),
           emp.allocatedEerNIC.toFixed(2),
@@ -210,11 +254,15 @@ export default function WageCostAllocationReportPage() {
         'TOTAL',
         '',
         '',
-        '0',
-        '0',
-        '0',
-        '0',
-        '0',
+        '',
+        opTotals.hoursWorked.toFixed(2),
+        opTotals.daysWorked.toFixed(2),
+        opTotals.extraShiftWorked.toFixed(2),
+        opTotals.addition.toFixed(2),
+        opTotals.deduction.toFixed(2),
+        '',
+        // Blank on purpose: per-employee period totals must not be summed.
+        '',
         '',
         ts.totals.allocatedNiWage.toFixed(2),
         ts.totals.allocatedCashWage.toFixed(2),
@@ -274,7 +322,12 @@ export default function WageCostAllocationReportPage() {
 
         {reportData && reportData.wageCostAllocations && (
           <Box sx={{ mt: 3 }}>
-            {reportData.wageCostAllocations.map((ts, index) => (
+            {reportData.wageCostAllocations.map((ts, index) => {
+              const opTotals = sumOperationalTotals(
+                ts,
+                reportData.contributingTimesheets
+              );
+              return (
               <Box key={index} sx={{ mb: 4 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
                   Contributing Timesheet #{index + 1}
@@ -298,6 +351,7 @@ export default function WageCostAllocationReportPage() {
                     <TableRow>
                       <TableCell>Employee Name</TableCell>
                       <TableCell>Payroll ID</TableCell>
+                      <TableCell>Base Location</TableCell>
                       <TableCell>Structure Name</TableCell>
                       <TableCell>Hours Worked</TableCell>
                       <TableCell>Days Worked</TableCell>
@@ -305,6 +359,8 @@ export default function WageCostAllocationReportPage() {
                       <TableCell>Addition</TableCell>
                       <TableCell>Deduction</TableCell>
                       <TableCell>Notes</TableCell>
+                      <TableCell>NI Hours Used (period)</TableCell>
+                      <TableCell>Cash Hours Used (period)</TableCell>
                       <TableCell>Allocated NI Wage</TableCell>
                       <TableCell>Allocated Cash Wage</TableCell>
                       <TableCell>Allocated Eer NIC</TableCell>
@@ -315,10 +371,10 @@ export default function WageCostAllocationReportPage() {
                     {ts.employees.map((emp, i) => {
                       // Find matching "contributingTimesheets" record 
                       // to get hours, days, extra shift, etc.
-                      const matchingCT = reportData.contributingTimesheets.find(
-                        (ct) =>
-                          ct.employeeName === emp.employeeName &&
-                          ct.timesheetName === ts.timesheetName
+                      const matchingCT = findContributingRecord(
+                        reportData.contributingTimesheets,
+                        emp.employeeName,
+                        ts.timesheetName
                       );
 
                       const hoursWorked = matchingCT
@@ -342,6 +398,7 @@ export default function WageCostAllocationReportPage() {
                         <TableRow key={i}>
                           <TableCell>{emp.employeeName}</TableCell>
                           <TableCell>{emp.payrollId}</TableCell>
+                          <TableCell>{emp.baseLocation || 'N/A'}</TableCell>
                           <TableCell>{emp.payStructureName}</TableCell>
                           <TableCell>{hoursWorked}</TableCell>
                           <TableCell>{daysWorked}</TableCell>
@@ -349,6 +406,8 @@ export default function WageCostAllocationReportPage() {
                           <TableCell>{addition}</TableCell>
                           <TableCell>{deduction}</TableCell>
                           <TableCell>{notes}</TableCell>
+                          <TableCell>{(emp.niHoursUsed || 0).toFixed(2)}</TableCell>
+                          <TableCell>{(emp.cashHoursUsed || 0).toFixed(2)}</TableCell>
                           <TableCell>{emp.allocatedNiWage.toFixed(2)}</TableCell>
                           <TableCell>{emp.allocatedCashWage.toFixed(2)}</TableCell>
                           <TableCell>{emp.allocatedEerNIC.toFixed(2)}</TableCell>
@@ -357,15 +416,19 @@ export default function WageCostAllocationReportPage() {
                       );
                     })}
                     <TableRow sx={{ fontWeight: 'bold' }}>
-                      {/* "TOTAL" row with zero or blank for hours/days/etc. */}
                       <TableCell>TOTAL</TableCell>
                       <TableCell></TableCell>
                       <TableCell></TableCell>
-                      <TableCell>0</TableCell>
-                      <TableCell>0</TableCell>
-                      <TableCell>0</TableCell>
-                      <TableCell>0</TableCell>
-                      <TableCell>0</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell>{opTotals.hoursWorked.toFixed(2)}</TableCell>
+                      <TableCell>{opTotals.daysWorked.toFixed(2)}</TableCell>
+                      <TableCell>{opTotals.extraShiftWorked.toFixed(2)}</TableCell>
+                      <TableCell>{opTotals.addition.toFixed(2)}</TableCell>
+                      <TableCell>{opTotals.deduction.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
+                      {/* Left blank on purpose: these are per-employee period
+                          totals, so summing them down the column is meaningless. */}
+                      <TableCell></TableCell>
                       <TableCell></TableCell>
                       <TableCell>{ts.totals.allocatedNiWage.toFixed(2)}</TableCell>
                       <TableCell>{ts.totals.allocatedCashWage.toFixed(2)}</TableCell>
@@ -375,7 +438,8 @@ export default function WageCostAllocationReportPage() {
                   </TableBody>
                 </Table>
               </Box>
-            ))}
+              );
+            })}
 
             {/* Buttons to export PDF / CSV */}
             <Box sx={{ display: 'flex', gap: 2 }}>
