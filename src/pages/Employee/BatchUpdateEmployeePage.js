@@ -120,8 +120,10 @@ export default function BatchUpdateEmployeePage() {
     setLoadingEmployees(true);
     setEmployeeMessage('');
     try {
-      // Build query parameters using status filter only
-      const params = {};
+      // Build query parameters using status filter only.
+      // limit: 'all' bypasses the server's default 200-record page so the
+      // batch screen sees every employee matching the status filter.
+      const params = { limit: 'all' };
       if (statusFilter) params.status = statusFilter;
       const res = await api.get('/employees', { params });
       const empList = res.data.employees || [];

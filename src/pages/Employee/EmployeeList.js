@@ -28,6 +28,7 @@ import AlarmIcon from '@mui/icons-material/Alarm';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { keyframes } from '@mui/system';
+import DuplicatePayrollIdDialog from './DuplicatePayrollIdDialog';
 
 // Animation: Slight pulse for avatars
 const avatarPulse = keyframes`
@@ -56,6 +57,7 @@ export default function EmployeeList() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
 
   // Fetch employees with filters & pagination
   const fetchEmployees = async () => {
@@ -200,8 +202,27 @@ export default function EmployeeList() {
           >
             Batch Update
           </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setDuplicateDialogOpen(true)}
+            sx={{
+              borderColor: '#5e4b33',
+              color: '#5e4b33',
+              fontWeight: 'bold',
+              ':hover': { borderColor: '#3e352a', bgcolor: '#f5efe4' },
+              fontFamily: `'Merriweather', serif`
+            }}
+          >
+            Find Duplicate Payroll IDs
+          </Button>
         </Box>
       </Box>
+
+      <DuplicatePayrollIdDialog
+        open={duplicateDialogOpen}
+        onClose={() => setDuplicateDialogOpen(false)}
+        onSaved={fetchEmployees}
+      />
 
       {loading ? (
         <Typography>Loading...</Typography>
