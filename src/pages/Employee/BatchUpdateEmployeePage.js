@@ -21,6 +21,8 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  TableContainer,
+  Alert,
   Grid
 } from '@mui/material';
 import Papa from 'papaparse';
@@ -64,6 +66,7 @@ export default function BatchUpdateEmployeePage() {
   const [updating, setUpdating] = useState(false);
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateMessage, setUpdateMessage] = useState('');
+  const [updateErrors, setUpdateErrors] = useState([]);
 
   // ---------- Tab change ----------
   const handleTabChange = (event, newValue) => {
@@ -306,6 +309,7 @@ export default function BatchUpdateEmployeePage() {
     }
     setUpdating(true);
     setUpdateMessage('');
+    setUpdateErrors([]);
     setUpdateProgress(0);
 
     // Chunk the array into smaller arrays (e.g., 10 rows per request)
@@ -315,19 +319,60 @@ export default function BatchUpdateEmployeePage() {
       chunks.push(parsedUpdates.slice(i, i + chunkSize));
     }
 
-    try {
-      for (let i = 0; i < chunks.length; i++) {
-        await api.put('/employees/batch-update', { employees: chunks[i] });
-        // Update progress
-        setUpdateProgress(Math.round(((i + 1) / chunks.length) * 100));
+    const collectedErrors = [];
+    let updatedTotal = 0;
+
+    for (let i = 0; i < chunks.length; i++) {
+      try {
+        const res = await api.put('/employees/batch-update', {
+          employees: chunks[i]
+        });
+
+        updatedTotal += res.data?.updatedCount ?? chunks[i].length;
+
+        // The server numbers rows within its own request; translate back to
+        // the row number in the CSV the user actually uploaded.
+        (res.data?.errors || []).forEach((rowError) => {
+          collectedErrors.push({
+            ...rowError,
+            csvRow: i * chunkSize + (rowError.row || 0)
+          });
+        });
+      } catch (error) {
+        // Whole chunk rejected (bad payload, auth, network). Record it and keep
+        // going so one bad chunk doesn't hide the rest of the file.
+        console.error('Error during batch update:', error);
+        const message =
+          error.response?.data?.message ||
+          error.message ||
+          'Request failed for this batch of rows.';
+        chunks[i].forEach((row, rowIdx) => {
+          collectedErrors.push({
+            csvRow: i * chunkSize + rowIdx + 1,
+            employeeId: row.employeeId || '',
+            employeeName:
+              row.preferredName ||
+              `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+            payrollId: row.payrollId || '',
+            message
+          });
+        });
       }
-      setUpdateMessage('Employees updated successfully!');
-    } catch (error) {
-      console.error('Error during batch update:', error);
-      setUpdateMessage('Error updating employees. Check console for details.');
-    } finally {
-      setUpdating(false);
+      setUpdateProgress(Math.round(((i + 1) / chunks.length) * 100));
     }
+
+    setUpdateErrors(collectedErrors);
+    if (collectedErrors.length === 0) {
+      setUpdateMessage(
+        `Employees updated successfully! ${updatedTotal} row(s) applied.`
+      );
+    } else {
+      setUpdateMessage(
+        `Updated ${updatedTotal} of ${parsedUpdates.length} row(s). ` +
+          `${collectedErrors.length} row(s) failed — see the list below, fix your CSV and upload again.`
+      );
+    }
+    setUpdating(false);
   };
 
   return (
@@ -553,9 +598,54 @@ export default function BatchUpdateEmployeePage() {
               )}
 
               {updateMessage && (
-                <Typography variant="body1" sx={{ mt: 2, color: 'primary.main' }}>
+                <Alert
+                  severity={updateErrors.length ? 'warning' : 'success'}
+                  sx={{ mt: 2 }}
+                >
                   {updateMessage}
-                </Typography>
+                </Alert>
+              )}
+
+              {updateErrors.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Rows that could not be updated ({updateErrors.length})
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>CSV Row</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Employee</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Payroll ID</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Problem</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {updateErrors.map((rowError, idx) => (
+                          <TableRow key={`${rowError.employeeId || 'row'}-${idx}`}>
+                            <TableCell>{rowError.csvRow}</TableCell>
+                            <TableCell>{rowError.employeeName || '—'}</TableCell>
+                            <TableCell>{rowError.payrollId || '—'}</TableCell>
+                            <TableCell
+                              sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                            >
+                              {rowError.employeeId || '—'}
+                            </TableCell>
+                            <TableCell sx={{ color: 'error.main' }}>
+                              {rowError.message}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                    Row numbers refer to data rows in your CSV (the header row is
+                    not counted). Every other row was updated successfully.
+                  </Typography>
+                </Box>
               )}
             </Box>
           )}
